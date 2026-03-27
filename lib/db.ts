@@ -15,10 +15,10 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
 }
 
 function getPoolConfig(): PoolConfig {
-  const connectionString = process.env.DATABASE_PRISMA_URL;
+  const connectionString = process.env.DATABASE_PRISMA_DATABASE_URL;
 
   if (!connectionString) {
-    throw new Error("Missing DATABASE_PRISMA_URL environment variable.");
+    throw new Error("Missing DATABASE_PRISMA_DATABASE_URL environment variable.");
   }
 
   return {
