@@ -17,3 +17,44 @@ model First {
   name      String
   createdAt DateTime @default(now())
 }
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  validated Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+
+model Patient {
+  dni        String   @id @default(uuid())
+  nombre      String
+  apellido    String
+  age       Int
+  email     String   @unique
+  createdAt DateTime @default(now())
+  diagnoses  Diagnosis[]
+}
+
+model Doctor {
+  id        String   @id @default(uuid())
+  nombre      String
+  apellido    String
+  specialty   String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  diagnoses  Diagnosis[]
+}
+
+model Diagnosis {
+  id        String   @id @default(uuid())
+  patientId String
+  doctorId  String
+  diagnosis String
+  createdAt DateTime @default(now())
+
+  patient   Patient @relation(fields: [patientId], references: [dni])
+  doctor    Doctor  @relation(fields: [doctorId], references: [id])
+}
