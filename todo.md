@@ -8,3 +8,4 @@
 * Duda: Registro de usuarios / Alta de usuarios
 * Duda: Paciente y diagnóstico pueden estar en el mismo form, pero deben llenar tablas distintas. Un paciente puede tener múltiples diagnósticos
 * Duda: Paginación tabla 
+* Medio: password encrytp

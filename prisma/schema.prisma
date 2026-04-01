@@ -12,13 +12,8 @@ datasource db {
   provider = "postgresql"
 }
 
-model First {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-}
 
-model User {
+model Users {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String?
@@ -28,7 +23,7 @@ model User {
 }
 
 
-model Patient {
+model Patients {
   dni        String   @id @default(uuid())
   nombre      String
   apellido    String
@@ -38,7 +33,7 @@ model Patient {
   diagnoses  Diagnosis[]
 }
 
-model Doctor {
+model Doctors {
   id        String   @id @default(uuid())
   nombre      String
   apellido    String
@@ -55,6 +50,6 @@ model Diagnosis {
   diagnosis String
   createdAt DateTime @default(now())
 
-  patient   Patient @relation(fields: [patientId], references: [dni])
-  doctor    Doctor  @relation(fields: [doctorId], references: [id])
+  patient   Patients @relation(fields: [patientId], references: [dni])
+  doctor    Doctors  @relation(fields: [doctorId], references: [id])
 }
