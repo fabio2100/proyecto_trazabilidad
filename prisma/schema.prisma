@@ -48,6 +48,9 @@ model Diagnosis {
   patientId String
   doctorId  String
   diagnosis String
+  material String
+  profesionalSolicitante String
+  biopsasPrevias Boolean
   createdAt DateTime @default(now())
 
   patient   Patients @relation(fields: [patientId], references: [dni])
