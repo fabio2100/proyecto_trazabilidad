@@ -10,3 +10,10 @@ export interface CreatePatientDto {
   biopsiasPrevias: string;
   diagnostico: string;
 }
+
+export interface PatientDataByDniDto {
+  apellido: string;
+  nombre: string;
+  email: string;
+  edad: string;
+}

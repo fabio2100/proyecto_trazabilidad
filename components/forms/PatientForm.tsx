@@ -24,7 +24,7 @@ import {
   validateSelect,
 } from '@/utils/validations';
 import { mapPatientFormDataToCreateDto } from '@/utils/patientMappers';
-import { createPatient, updatePatient } from '@/services/patientService';
+import { createPatient, getPatientDataByDni, updatePatient } from '@/services/patientService';
 
 type ValidatableFieldName = keyof PatientFormData;
 
@@ -69,6 +69,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
 
   useEffect(() => {
     setFormData(resolvedInitialData);
@@ -76,7 +77,38 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     setTouched({});
     setSuccessMessage('');
     setErrorMessage('');
+    setEmail('');
   }, [resolvedInitialData]);
+
+  const fetchPatientDataByDni = async (dni: string): Promise<void> => {
+    try {
+      const patientData = await getPatientDataByDni(dni);
+
+      if (!patientData) {
+        setEmail('');
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        apellido: patientData.apellido,
+        nombre: patientData.nombre,
+        edad: patientData.edad,
+      }));
+
+      setErrors((prev) => ({
+        ...prev,
+        apellido: '',
+        nombre: '',
+        edad: '',
+      }));
+
+      setEmail(patientData.email);
+    } catch {
+      setEmail('');
+      setErrorMessage('No se pudieron obtener los datos del paciente por DNI.');
+    }
+  };
 
   const validateField = (fieldName: ValidatableFieldName, value: string): string => {
     let error = '';
@@ -163,13 +195,28 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name } = e.target;
+    const { name, value } = e.target;
     const fieldName = name as ValidatableFieldName;
 
     setTouched((prev) => ({
       ...prev,
       [fieldName]: true,
     }));
+
+    if (mode !== 'create' || fieldName !== 'dni') {
+      return;
+    }
+
+    const dniValue = value.trim();
+    const dniError = validateDni(dniValue);
+
+    if (dniError) {
+      setEmail('');
+      return;
+    }
+
+    setErrorMessage('');
+    void fetchPatientDataByDni(dniValue);
   };
 
   const requiredFields: Array<ValidatableFieldName> = [
@@ -206,6 +253,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     setTouched({});
     setSuccessMessage('');
     setErrorMessage('');
+    setEmail('');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -244,6 +292,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
         setFormData(initialPatientFormData);
         setErrors({});
         setTouched({});
+        setEmail('');
         setSuccessMessage('Paciente guardado correctamente.');
       }
     } catch (error) {
@@ -338,6 +387,23 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
               placeholder="Edad del paciente"
               error={showError('edad')}
               helperText={showError('edad') ? errors.edad : ''}
+            />
+          </Box>
+
+          {/* Email */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              type="email"
+              value={email}
+              placeholder="Se completa automáticamente según DNI"
+              slotProps={{
+                input: {
+                  readOnly: true,
+                },
+              }}
             />
           </Box>
 

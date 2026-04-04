@@ -1,4 +1,4 @@
-import { CreatePatientDto } from '@/types/patient.dto';
+import { CreatePatientDto, PatientDataByDniDto } from '@/types/patient.dto';
 import { Patient } from '@/types/patient';
 import { apiPost } from '@/services/apiClient';
 
@@ -9,6 +9,12 @@ const USE_MOCK = true;
 const PATIENTS_ENDPOINT = '/patients';
 
 const STORAGE_KEY = 'patients';
+
+interface GetPatientDataResponse {
+  ok: boolean;
+  patient: PatientDataByDniDto | null;
+  message?: string;
+}
 
 const isBrowser = (): boolean => typeof window !== 'undefined';
 
@@ -68,7 +74,7 @@ export const createPatient = async (data: CreatePatientDto): Promise<void> => {
 
   try {
     await apiPost<CreatePatientDto, unknown>(PATIENTS_ENDPOINT, data);
-  } catch (error) {
+  } catch {
     throw new Error('No se pudo crear el paciente. Por favor, intentá de nuevo.');
   }
 };
@@ -140,4 +146,15 @@ export const deletePatient = async (id: string): Promise<void> => {
 
   // TODO: Implementar API real (ej: DELETE /patients/:id)
   throw new Error('deletePatient no está implementado para modo API real todavía.');
+};
+
+export const getPatientDataByDni = async (dni: string): Promise<PatientDataByDniDto | null> => {
+  const response = await fetch(`/api/getPatientData?dni=${encodeURIComponent(dni)}`);
+
+  if (!response.ok) {
+    throw new Error('No se pudo consultar el paciente por DNI.');
+  }
+
+  const data = (await response.json()) as GetPatientDataResponse;
+  return data.patient;
 };
