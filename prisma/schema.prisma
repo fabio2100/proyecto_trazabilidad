@@ -29,6 +29,7 @@ model Patients {
   apellido    String
   age       Int
   email     String   @unique
+  telefono Int?  
   createdAt DateTime @default(now())
   diagnoses  Diagnosis[]
 }

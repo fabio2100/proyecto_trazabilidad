@@ -12,8 +12,10 @@ export interface CreatePatientDto {
 }
 
 export interface PatientDataByDniDto {
+  dni?: string;
   apellido: string;
   nombre: string;
   email: string;
   edad: string;
+  telefono?: string;
 }

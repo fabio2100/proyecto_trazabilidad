@@ -12,7 +12,7 @@ export default function Dashboard() {
             Panel de control principal de la aplicación.
           </Typography>
         </Paper>
-      </Box>
+      </Box>   
     </Container>
   );
 }

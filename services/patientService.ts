@@ -158,3 +158,14 @@ export const getPatientDataByDni = async (dni: string): Promise<PatientDataByDni
   const data = (await response.json()) as GetPatientDataResponse;
   return data.patient;
 };
+
+export const getPatientDataByEmail = async (email: string): Promise<PatientDataByDniDto | null> => {
+  const response = await fetch(`/api/getPatientData?email=${encodeURIComponent(email)}`);
+
+  if (!response.ok) {
+    throw new Error('No se pudo consultar el paciente por email.');
+  }
+
+  const data = (await response.json()) as GetPatientDataResponse;
+  return data.patient;
+};

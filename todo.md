@@ -9,3 +9,4 @@
 * Duda: Paciente y diagnóstico pueden estar en el mismo form, pero deben llenar tablas distintas. Un paciente puede tener múltiples diagnósticos
 * Duda: Paginación tabla 
 * Medio: password encrytp
+* Sugerencia: Cambiar edad por fecha de nacimiento
