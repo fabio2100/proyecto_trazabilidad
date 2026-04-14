@@ -19,3 +19,16 @@ export interface PatientDataByDniDto {
   edad: string;
   telefono?: string;
 }
+
+export interface GuardarPacienteDto {
+  dni: string;
+  nombre: string;
+  apellido: string;
+  edad: string;
+  email: string;
+  telefono: string;
+  diagnostico: string;
+  material: string;
+  profesionalSolicitante: string;
+  biopsiasPrevias: string;
+}

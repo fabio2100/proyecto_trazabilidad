@@ -28,9 +28,9 @@ import {
 } from '@/utils/validations';
 import { mapPatientFormDataToCreateDto } from '@/utils/patientMappers';
 import {
-  createPatient,
   getPatientDataByDni,
   getPatientDataByEmail,
+  guardarPaciente,
   updatePatient,
 } from '@/services/patientService';
 
@@ -382,7 +382,18 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
         await updatePatient(patientId, dto);
         setSuccessMessage('Paciente actualizado correctamente.');
       } else {
-        await createPatient(dto);
+        await guardarPaciente({
+          dni: formData.dni,
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          edad: formData.edad,
+          email,
+          telefono: formData.telefono,
+          diagnostico: formData.diagnostico,
+          material: formData.material,
+          profesionalSolicitante: formData.profesionalSolicitante,
+          biopsiasPrevias: formData.biopsiasPrevias,
+        });
         setFormData(initialPatientFormData);
           setPatientFound(false);
           setPatientEditable(false);
@@ -585,7 +596,6 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 placeholder="Tipo de material"
                 error={showError('material')}
                 helperText={showError('material') ? errors.material : ''}
-                disabled={isFormLocked}
               />
             </Box>
 
@@ -601,7 +611,6 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 placeholder="Nombre del profesional"
                 error={showError('profesionalSolicitante')}
                 helperText={showError('profesionalSolicitante') ? errors.profesionalSolicitante : ''}
-                disabled={isFormLocked}
               />
             </Box>
 
@@ -617,13 +626,12 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 placeholder="Obra social o datos FAMAS"
                 error={showError('obraSocialFamas')}
                 helperText={showError('obraSocialFamas') ? errors.obraSocialFamas : ''}
-                disabled={isFormLocked}
               />
             </Box>
 
             {/* Biopsias Previas */}
             <Box>
-              <FormControl fullWidth error={showError('biopsiasPrevias')} disabled={isFormLocked}>
+              <FormControl fullWidth error={showError('biopsiasPrevias')}>
                 <InputLabel id="biopsias-label">Biopsias Previas</InputLabel>
                 <Select
                   labelId="biopsias-label"
@@ -655,7 +663,6 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 placeholder="Diagnóstico clínico o observaciones"
                 multiline
                 rows={3}
-                disabled={isFormLocked}
               />
             </Box>
           </Box>

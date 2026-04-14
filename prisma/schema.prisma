@@ -29,7 +29,7 @@ model Patients {
   apellido    String
   age       Int
   email     String   @unique
-  telefono Int?  
+  telefono String?
   createdAt DateTime @default(now())
   diagnoses  Diagnosis[]
 }
@@ -41,13 +41,11 @@ model Doctors {
   specialty   String
   email     String   @unique
   createdAt DateTime @default(now())
-  diagnoses  Diagnosis[]
 }
 
 model Diagnosis {
   id        String   @id @default(uuid())
   patientId String
-  doctorId  String
   diagnosis String
   material String
   profesionalSolicitante String
@@ -55,5 +53,4 @@ model Diagnosis {
   createdAt DateTime @default(now())
 
   patient   Patients @relation(fields: [patientId], references: [dni])
-  doctor    Doctors  @relation(fields: [doctorId], references: [id])
 }

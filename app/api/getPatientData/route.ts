@@ -10,7 +10,7 @@ interface PatientLookupRow {
   nombre: string;
   email: string;
   age: number;
-  telefono: number | null;
+  telefono: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         nombre: patient.nombre,
         email: patient.email,
         edad: String(patient.age),
-        telefono: patient.telefono !== null ? String(patient.telefono) : '',
+        telefono: patient.telefono ?? '',
       },
     });
   } catch {

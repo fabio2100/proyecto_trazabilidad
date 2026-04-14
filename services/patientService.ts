@@ -1,4 +1,4 @@
-import { CreatePatientDto, PatientDataByDniDto } from '@/types/patient.dto';
+import { CreatePatientDto, GuardarPacienteDto, PatientDataByDniDto } from '@/types/patient.dto';
 import { Patient } from '@/types/patient';
 import { apiPost } from '@/services/apiClient';
 
@@ -168,4 +168,17 @@ export const getPatientDataByEmail = async (email: string): Promise<PatientDataB
 
   const data = (await response.json()) as GetPatientDataResponse;
   return data.patient;
+};
+
+export const guardarPaciente = async (data: GuardarPacienteDto): Promise<void> => {
+  const response = await fetch('/api/guardar_paciente', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({})) as { message?: string };
+    throw new Error(payload.message ?? 'No se pudo guardar el paciente.');
+  }
 };
