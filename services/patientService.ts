@@ -79,17 +79,36 @@ export const createPatient = async (data: CreatePatientDto): Promise<void> => {
   }
 };
 
-export const getPatients = async (): Promise<Patient[]> => {
-  if (USE_MOCK) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(readPatientsFromStorage());
-      }, 150);
-    });
+export interface DiagnosisRecord {
+  id: string;
+  biopsasPrevias: boolean;
+  created_at: string;
+  diagnosis: string;
+  material: string;
+  patientId: string;
+  profesionalSolicitante: string;
+}
+
+interface GetPatientsResponse {
+  ok: boolean;
+  data: DiagnosisRecord[];
+  message?: string;
+}
+
+export const getPatients = async (): Promise<DiagnosisRecord[]> => {
+  const response = await fetch('/api/getPatients');
+
+  if (!response.ok) {
+    throw new Error('Error al obtener los diagnósticos.');
   }
 
-  // TODO: Implementar API real (ej: GET /patients)
-  throw new Error('getPatients no está implementado para modo API real todavía.');
+  const json: GetPatientsResponse = await response.json();
+
+  if (!json.ok) {
+    throw new Error(json.message ?? 'Error desconocido al obtener los diagnósticos.');
+  }
+
+  return json.data;
 };
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {

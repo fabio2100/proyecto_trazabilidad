@@ -13,8 +13,8 @@ const drawerWidth = 240;
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Pacientes', href: '/pacientes' },
-  { label: 'Nuevo Paciente', href: '/pacientes/nuevo' },
+  { label: 'Diagnósticos', href: '/pacientes' },
+  { label: 'Nuevo Diagnóstico', href: '/pacientes/nuevo' },
 ];
 
 export default function AppSidebar() {

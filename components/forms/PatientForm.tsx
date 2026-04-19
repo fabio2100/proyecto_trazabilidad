@@ -414,7 +414,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     <Box component="form" onSubmit={handleSubmit} noValidate>
       <Paper elevation={2} sx={{ p: 3 }}>
         <Typography variant="h2" component="h2" gutterBottom sx={{ mb: 3 }}>
-          {mode === 'edit' ? 'Editar Paciente' : 'Nuevo Paciente'}
+          {mode === 'edit' ? 'Editar Diagnóstico' : 'Nuevo Diagnóstico'}
         </Typography>
 
         {successMessage && (
@@ -680,7 +680,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
               color="primary"
               disabled={!isFormValid() || isSubmitting}
             >
-              {isSubmitting ? 'Guardando...' : mode === 'edit' ? 'Actualizar Paciente' : 'Guardar Paciente'}
+              {isSubmitting ? 'Guardando...' : mode === 'edit' ? 'Actualizar Diagnóstico' : 'Guardar Diagnóstico'}
             </Button>
           </Box>
         </Box>
