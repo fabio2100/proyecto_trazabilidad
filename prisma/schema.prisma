@@ -20,6 +20,7 @@ model Users {
   password  String
   validated Boolean  @default(true)
   createdAt DateTime @default(now())
+  informes  Informes[]
 }
 
 
@@ -52,5 +53,17 @@ model Diagnosis {
   biopsasPrevias Boolean
   createdAt DateTime @default(now())
 
-  patient   Patients @relation(fields: [patientId], references: [dni])
+  patient   Patients  @relation(fields: [patientId], references: [dni])
+  informes  Informes[]
+}
+
+model Informes {
+  id          String    @id @default(uuid())
+  cuerpo      String
+  diagnosisId String
+  userId      String
+  createdAt   DateTime  @default(now())
+
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
+  user        Users     @relation(fields: [userId], references: [id])
 }

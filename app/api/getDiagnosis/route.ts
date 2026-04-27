@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getPool } from '@/lib/db';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+interface DiagnosisRow {
+  id: string;
+  patientId: string;
+  diagnosis: string;
+  material: string;
+  profesionalSolicitante: string;
+  biopsasPrevias: boolean;
+  createdAt: Date;
+}
+
+export async function GET(request: NextRequest) {
+  const id = request.nextUrl.searchParams.get('id')?.trim() ?? '';
+
+  if (!id) {
+    return NextResponse.json(
+      { ok: false, message: 'El parámetro id es requerido.' },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const pool = getPool();
+    const result = await pool.query<DiagnosisRow>(
+      `SELECT id, "patientId", diagnosis, material, "profesionalSolicitante", "biopsasPrevias", "createdAt"
+       FROM "Diagnosis"
+       WHERE id = $1
+       LIMIT 1`,
+      [id],
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { ok: false, message: 'Estudio no encontrado' },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error al obtener diagnóstico:', error);
+    return NextResponse.json(
+      { ok: false, message: 'Error al obtener el diagnóstico.' },
+      { status: 500 },
+    );
+  }
+}

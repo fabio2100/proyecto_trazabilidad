@@ -10,3 +10,4 @@
 * Duda: Paginación tabla 
 * Medio: password encrytp
 * Sugerencia: Cambiar edad por fecha de nacimiento
+* Sugerencia: Alerta de confirmación debe ser flotante
