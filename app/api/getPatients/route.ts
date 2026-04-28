@@ -12,16 +12,20 @@ interface DiagnosisRow {
   material: string;
   patientId: string;
   profesionalSolicitante: string;
+  hasInforme: boolean;
+  informeId: string | null;
 }
 
 export async function GET() {
   try {
     const pool = getPool();
     const result = await pool.query<DiagnosisRow>(
-      `SELECT id, "biopsasPrevias", "createdAt" AS created_at, diagnosis, material, "patientId", "profesionalSolicitante"
-       FROM "Diagnosis"
-       ORDER BY "createdAt" DESC`,
-
+      `SELECT d.id, d."biopsasPrevias", d."createdAt" AS created_at, d.diagnosis, d.material, d."patientId", d."profesionalSolicitante",
+              (i.id IS NOT NULL) AS "hasInforme",
+              i.id AS "informeId"
+       FROM "Diagnosis" d
+       LEFT JOIN "Informes" i ON i."diagnosisId" = d.id
+       ORDER BY d."createdAt" DESC`,
     );
 
     return NextResponse.json({ ok: true, data: result.rows });

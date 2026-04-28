@@ -87,6 +87,8 @@ export interface DiagnosisRecord {
   material: string;
   patientId: string;
   profesionalSolicitante: string;
+  hasInforme: boolean;
+  informeId: string | null;
 }
 
 interface GetPatientsResponse {

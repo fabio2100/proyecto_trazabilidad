@@ -6,6 +6,7 @@ import {
   Box,
   CircularProgress,
   Container,
+  IconButton,
   Paper,
   Table,
   TableBody,
@@ -14,6 +15,9 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import DownloadIcon from '@mui/icons-material/Download';
 import { getPatients, DiagnosisRecord } from '@/services/patientService';
 
 export default function PatientsPage() {
@@ -75,6 +79,7 @@ export default function PatientsPage() {
                   <TableCell>Profesional Solicitante</TableCell>
                   <TableCell>Biopsias Previas</TableCell>
                   <TableCell>Fecha</TableCell>
+                  <TableCell>Informe</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -86,6 +91,45 @@ export default function PatientsPage() {
                     <TableCell>{patient.profesionalSolicitante}</TableCell>
                     <TableCell>{patient.biopsasPrevias ? 'Sí' : 'No'}</TableCell>
                     <TableCell>{new Date(patient.created_at).toLocaleDateString('es-AR')}</TableCell>
+                    <TableCell>
+                      {patient.hasInforme ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <CheckCircleIcon sx={{ color: 'success.main' }} />
+                          <IconButton
+                            size="small"
+                            aria-label="Descargar informe"
+                            onClick={async () => {
+                              const res = await fetch('/api/informePdf', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ idInforme: patient.informeId }),
+                              });
+                              if (res.ok) {
+                                const blob = await res.blob();
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `informe-${patient.informeId}.pdf`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }
+                            }}
+                          >
+                            <DownloadIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      ) : (
+                        <IconButton
+                          size="small"
+                          aria-label="Crear informe"
+                          onClick={() =>
+                            window.open(`/informes?diagnosisId=${patient.id}`, '_blank')
+                          }
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
