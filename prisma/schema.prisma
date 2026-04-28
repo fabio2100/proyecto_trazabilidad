@@ -54,13 +54,13 @@ model Diagnosis {
   createdAt DateTime @default(now())
 
   patient   Patients  @relation(fields: [patientId], references: [dni])
-  informes  Informes[]
+  informe   Informes?
 }
 
 model Informes {
   id          String    @id @default(uuid())
   cuerpo      String
-  diagnosisId String
+  diagnosisId String    @unique
   userId      String
   createdAt   DateTime  @default(now())
 

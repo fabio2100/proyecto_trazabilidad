@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 interface DiagnosisData {
   id: string;
@@ -13,9 +13,8 @@ interface DiagnosisData {
   createdAt: string;
 }
 
-export default function InformesPage() {
-  const searchParams = useSearchParams();
-  const diagnosisId = useParams<{diagnosisId: string}>().diagnosisId || searchParams.get('diagnosisId') || '';
+export default function InformesByDiagnosisPage() {
+  const diagnosisId = useParams<{ diagnosisId: string }>().diagnosisId || '';
 
   const [authValid, setAuthValid] = useState<boolean | null>(null);
   const [informe, setInforme] = useState('');
