@@ -2,6 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Container,
+  Divider,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 
 interface DiagnosisData {
   id: string;
@@ -23,6 +35,8 @@ export default function InformesPage() {
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisData | null>(null);
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
   const [loadingDiagnosis, setLoadingDiagnosis] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     const auth = localStorage.getItem('auth');
@@ -47,22 +61,37 @@ export default function InformesPage() {
   }, [authValid, diagnosisId]);
 
   if (authValid === null) {
-    return null;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (!authValid || !diagnosisId) {
-    return <p>Acceso denegado</p>;
+    return (
+      <Container maxWidth="sm" sx={{ mt: 6 }}>
+        <Alert severity="error">Acceso denegado o falta diagnosisId en la URL.</Alert>
+      </Container>
+    );
   }
 
   if (!loadingDiagnosis && diagnosisError) {
-    return <p>{diagnosisError}</p>;
+    return (
+      <Container maxWidth="sm" sx={{ mt: 6 }}>
+        <Alert severity="error">{diagnosisError}</Alert>
+      </Container>
+    );
   }
 
   const handleGuardar = async () => {
     const informeValue = informe.trim();
+    setSaveMessage(null);
+    setSaveError(false);
 
     if (!informeValue) {
-      window.alert('Debe ingresar un informe antes de guardar.');
+      setSaveError(true);
+      setSaveMessage('Debe ingresar un informe antes de guardar.');
       return;
     }
 
@@ -80,42 +109,88 @@ export default function InformesPage() {
       });
 
       const data = await response.json();
-      window.alert(data.message ?? (data.ok ? 'Informe guardado correctamente.' : 'No se pudo guardar el informe.'));
+
+      if (data.ok) {
+        setSaveError(false);
+        setSaveMessage(data.message ?? 'Informe guardado correctamente.');
+      } else {
+        setSaveError(true);
+        setSaveMessage(data.message ?? 'No se pudo guardar el informe.');
+      }
     } catch {
-      window.alert('Error de red al guardar el informe.');
+      setSaveError(true);
+      setSaveMessage('Error de red al guardar el informe.');
     } finally {
       setSavingInforme(false);
     }
   };
 
   return (
-    <div>
-      <div>{diagnosisId}</div>
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 2 }}>
+        <Stack spacing={3}>
+          <Box>
+            <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+              Carga de Informe
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              ID del estudio: {diagnosisId}
+            </Typography>
+          </Box>
 
-      {loadingDiagnosis && <p>Cargando...</p>}
+          <Divider />
 
-      {diagnosisData && (
-        <div>
-          <p><strong>Diagnóstico:</strong> {diagnosisData.diagnosis}</p>
-          <p><strong>Material:</strong> {diagnosisData.material}</p>
-          <p><strong>Profesional solicitante:</strong> {diagnosisData.profesionalSolicitante}</p>
-          <p><strong>Biopsias previas:</strong> {diagnosisData.biopsasPrevias ? 'Sí' : 'No'}</p>
-          <p><strong>Fecha:</strong> {new Date(diagnosisData.createdAt).toLocaleString()}</p>
-        </div>
-      )}
+          {loadingDiagnosis && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2">Cargando datos del estudio...</Typography>
+            </Box>
+          )}
 
-      <div>
-        <label htmlFor="informe">Informe</label>
-        <textarea
-          id="informe"
-          value={informe}
-          onChange={(e) => setInforme(e.target.value)}
-        />
-      </div>
+          {diagnosisData && (
+            <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'background.default' }}>
+              <Stack spacing={1}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Datos del diagnóstico
+                </Typography>
+                <Typography variant="body2"><strong>Diagnóstico:</strong> {diagnosisData.diagnosis}</Typography>
+                <Typography variant="body2"><strong>Material:</strong> {diagnosisData.material}</Typography>
+                <Typography variant="body2"><strong>Profesional solicitante:</strong> {diagnosisData.profesionalSolicitante}</Typography>
+                <Typography variant="body2"><strong>Biopsias previas:</strong> {diagnosisData.biopsasPrevias ? 'Sí' : 'No'}</Typography>
+                <Typography variant="body2"><strong>Fecha:</strong> {new Date(diagnosisData.createdAt).toLocaleString()}</Typography>
+              </Stack>
+            </Paper>
+          )}
 
-      <button onClick={handleGuardar} disabled={savingInforme}>
-        {savingInforme ? 'Guardando...' : 'Guardar Informe'}
-      </button>
-    </div>
+          <TextField
+            id="informe"
+            label="Informe"
+            multiline
+            minRows={8}
+            value={informe}
+            onChange={(e) => setInforme(e.target.value)}
+            placeholder="Escriba aquí el informe..."
+            fullWidth
+          />
+
+          {saveMessage && (
+            <Alert severity={saveError ? 'error' : 'success'}>
+              {saveMessage}
+            </Alert>
+          )}
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              onClick={handleGuardar}
+              variant="contained"
+              size="large"
+              disabled={savingInforme}
+            >
+              {savingInforme ? 'Guardando...' : 'Guardar Informe'}
+            </Button>
+          </Box>
+        </Stack>
+      </Paper>
+    </Container>
   );
 }
