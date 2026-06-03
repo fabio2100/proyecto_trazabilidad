@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   Alert,
@@ -25,7 +25,7 @@ interface DiagnosisData {
   createdAt: string;
 }
 
-export default function InformesPage() {
+function InformesContent() {
   const searchParams = useSearchParams();
   const diagnosisId = useParams<{diagnosisId: string}>().diagnosisId || searchParams.get('diagnosisId') || '';
 
@@ -192,5 +192,13 @@ export default function InformesPage() {
         </Stack>
       </Paper>
     </Container>
+  );
+}
+
+export default function InformesPage() {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress /></Box>}>
+      <InformesContent />
+    </Suspense>
   );
 }
