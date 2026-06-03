@@ -107,15 +107,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Insertar nuevo Diagnosis
+    const diagnosisId = randomUUID();
     await client.query(
       `INSERT INTO "Diagnosis" (id, "patientId", diagnosis, material, "profesionalSolicitante", "biopsasPrevias")
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [randomUUID(), dni, diagnostico ?? '', material, profesionalSolicitante, biopsiasPreviasBool],
+      [diagnosisId, dni, diagnostico ?? '', material, profesionalSolicitante, biopsiasPreviasBool],
     );
 
     await client.query('COMMIT');
 
-    return NextResponse.json({ ok: true, message: 'Paciente y diagnóstico guardados correctamente.' });
+    return NextResponse.json({
+      ok: true,
+      message: 'Paciente y diagnóstico guardados correctamente.',
+      diagnosisId,
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('[guardar_paciente] Error:', error);

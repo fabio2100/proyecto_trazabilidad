@@ -382,7 +382,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
         await updatePatient(patientId, dto);
         setSuccessMessage('Paciente actualizado correctamente.');
       } else {
-        await guardarPaciente({
+        const payload = {
           dni: formData.dni,
           nombre: formData.nombre,
           apellido: formData.apellido,
@@ -393,14 +393,40 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
           material: formData.material,
           profesionalSolicitante: formData.profesionalSolicitante,
           biopsiasPrevias: formData.biopsiasPrevias,
+        };
+
+        const { diagnosisId } = await guardarPaciente(payload);
+
+        const qrTargetUrl = `${window.location.origin}/informes?diagnosisId=${encodeURIComponent(
+          diagnosisId,
+        )}`;
+
+        const pdfResponse = await fetch('/api/diagnosisPdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            diagnosisId,
+            qrTargetUrl,
+            formData: payload,
+          }),
         });
+
+        if (!pdfResponse.ok) {
+          throw new Error('Diagnóstico guardado, pero no se pudo generar el PDF.');
+        }
+
+        const pdfBlob = await pdfResponse.blob();
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+
         setFormData(initialPatientFormData);
-          setPatientFound(false);
-          setPatientEditable(false);
+        setPatientFound(false);
+        setPatientEditable(false);
         setErrors({});
         setTouched({});
         setEmail('');
-        setSuccessMessage('Paciente guardado correctamente.');
+        setSuccessMessage('Diagnóstico guardado y PDF generado correctamente.');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Ocurrió un error al guardar el paciente.';

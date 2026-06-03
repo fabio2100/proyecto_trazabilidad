@@ -191,15 +191,28 @@ export const getPatientDataByEmail = async (email: string): Promise<PatientDataB
   return data.patient;
 };
 
-export const guardarPaciente = async (data: GuardarPacienteDto): Promise<void> => {
+interface GuardarPacienteResponse {
+  ok: boolean;
+  message?: string;
+  diagnosisId?: string;
+}
+
+export const guardarPaciente = async (data: GuardarPacienteDto): Promise<{ diagnosisId: string }> => {
   const response = await fetch('/api/guardar_paciente', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
+  const payload = (await response.json().catch(() => ({}))) as GuardarPacienteResponse;
+
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({})) as { message?: string };
     throw new Error(payload.message ?? 'No se pudo guardar el paciente.');
   }
+
+  if (!payload.diagnosisId) {
+    throw new Error('No se recibió el ID del diagnóstico creado.');
+  }
+
+  return { diagnosisId: payload.diagnosisId };
 };
