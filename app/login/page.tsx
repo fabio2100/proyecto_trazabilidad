@@ -9,8 +9,8 @@ import {
   Paper,
   TextField,
   Button,
-  Alert,
 } from '@mui/material';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Login() {
@@ -20,8 +20,6 @@ export default function Login() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [alertSeverity, setAlertSeverity] = useState<'success' | 'error'>('error');
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
@@ -31,32 +29,16 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     setIsSubmitting(true);
-    setAlertMessage(null);
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+    // Simular delay de autenticación (sin validar credenciales reales)
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      const data = await response.json() as { ok: boolean; message?: string };
+    login();
+    setIsSubmitting(false);
 
-      if (data.ok) {
-        setAlertSeverity('success');
-        setAlertMessage('Acceso concedido. Redirigiendo...');
-        login();
-      } else {
-        setAlertSeverity('error');
-        setAlertMessage(data.message ?? 'Credenciales incorrectas. Por favor verifique su email y contraseña.');
-      }
-    } catch {
-      setAlertSeverity('error');
-      setAlertMessage('Credenciales incorrectas. Por favor verifique su email y contraseña.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // La redirección ocurre automáticamente via useEffect cuando isAuthenticated cambia
   };
 
   if (isAuthLoading) {
@@ -110,11 +92,16 @@ export default function Login() {
               {isSubmitting ? 'Ingresando...' : 'Ingresar'}
             </Button>
 
-            {alertMessage && (
-              <Alert severity={alertSeverity} sx={{ mt: 2 }}>
-                {alertMessage}
-              </Alert>
-            )}
+            <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
+              ¿No tienes cuenta?{' '}
+              <Link href="/register" style={{ color: '#1976d2', textDecoration: 'none' }}>
+                Regístrate aquí
+              </Link>
+            </Typography>
+
+            <Typography variant="caption" color="textSecondary" sx={{ mt: 2, display: 'block', textAlign: 'center' }}>
+              Nota: Este es un login simulado sin validación de credenciales.
+            </Typography>
           </Box>
         </Paper>
       </Box>

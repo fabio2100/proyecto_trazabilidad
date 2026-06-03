@@ -2,6 +2,7 @@ export interface Patient {
   id: string;
   apellido: string;
   nombre: string;
+  email: string;
   material: string;
   edad: string;
   dni: string;
@@ -15,6 +16,7 @@ export interface Patient {
 export interface PatientFormData {
   apellido: string;
   nombre: string;
+  email: string;
   material: string;
   edad: string;
   dni: string;
@@ -28,6 +30,7 @@ export interface PatientFormData {
 export const initialPatientFormData: PatientFormData = {
   apellido: '',
   nombre: '',
+  email: '',
   material: '',
   edad: '',
   dni: '',

@@ -1,6 +1,6 @@
-import { CreatePatientDto, GuardarPacienteDto, PatientDataByDniDto } from '@/types/patient.dto';
+import { CreatePatientDto } from '@/types/patient.dto';
 import { Patient } from '@/types/patient';
-import { apiPost } from '@/services/apiClient';
+// Nota: `createPatient` ahora llama al endpoint real `/api/guardar_paciente`.
 
 // Cambiar a false cuando el endpoint real esté disponible
 const USE_MOCK = true;
@@ -9,12 +9,6 @@ const USE_MOCK = true;
 const PATIENTS_ENDPOINT = '/patients';
 
 const STORAGE_KEY = 'patients';
-
-interface GetPatientDataResponse {
-  ok: boolean;
-  patient: PatientDataByDniDto | null;
-  message?: string;
-}
 
 const isBrowser = (): boolean => typeof window !== 'undefined';
 
@@ -49,6 +43,7 @@ const mapCreateDtoToPatient = (id: string, data: CreatePatientDto): Patient => {
     id,
     apellido: data.apellido,
     nombre: data.nombre,
+    email: data.email,
     material: data.material,
     edad: data.edad,
     dni: data.dni,
@@ -61,56 +56,30 @@ const mapCreateDtoToPatient = (id: string, data: CreatePatientDto): Patient => {
 };
 
 export const createPatient = async (data: CreatePatientDto): Promise<void> => {
-  if (USE_MOCK) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const patients = readPatientsFromStorage();
-        const newPatient = mapCreateDtoToPatient(Date.now().toString(), data);
-        savePatientsToStorage([...patients, newPatient]);
-        resolve();
-      }, 300);
-    });
-  }
-
   try {
-    await apiPost<CreatePatientDto, unknown>(PATIENTS_ENDPOINT, data);
-  } catch {
-    throw new Error('No se pudo crear el paciente. Por favor, intentá de nuevo.');
+    const response = await fetch('/api/guardar_paciente', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    let respData: any = null;
+    try {
+      respData = await response.json();
+    } catch {
+      respData = null;
+    }
+
+    if (!response.ok || (respData && respData.ok === false)) {
+      const msg = respData && respData.message ? String(respData.message) : 'No se pudo crear el paciente. Por favor, intentá de nuevo.';
+      throw new Error(msg);
+    }
+
+    return;
+  } catch (err: unknown) {
+    const message = err && typeof err === 'object' && 'message' in err ? (err as any).message : 'No se pudo crear el paciente. Por favor, intentá de nuevo.';
+    throw new Error(message as string);
   }
-};
-
-export interface DiagnosisRecord {
-  id: string;
-  biopsasPrevias: boolean;
-  created_at: string;
-  diagnosis: string;
-  material: string;
-  patientId: string;
-  profesionalSolicitante: string;
-  hasInforme: boolean;
-  informeId: string | null;
-}
-
-interface GetPatientsResponse {
-  ok: boolean;
-  data: DiagnosisRecord[];
-  message?: string;
-}
-
-export const getPatients = async (): Promise<DiagnosisRecord[]> => {
-  const response = await fetch('/api/getPatients');
-
-  if (!response.ok) {
-    throw new Error('Error al obtener los diagnósticos.');
-  }
-
-  const json: GetPatientsResponse = await response.json();
-
-  if (!json.ok) {
-    throw new Error(json.message ?? 'Error desconocido al obtener los diagnósticos.');
-  }
-
-  return json.data;
 };
 
 export const getPatientById = async (id: string): Promise<Patient | null> => {

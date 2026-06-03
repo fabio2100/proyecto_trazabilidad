@@ -6,7 +6,6 @@ import {
   Alert,
   Box,
   Button,
-  Fab,
   FormControl,
   FormHelperText,
   InputLabel,
@@ -16,8 +15,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import Tooltip from '@mui/material/Tooltip';
-import EditIcon from '@mui/icons-material/Edit';
 import { PatientFormData, initialPatientFormData } from '@/types/patient';
 import {
   validateTextField,
@@ -27,16 +24,12 @@ import {
   validateSelect,
 } from '@/utils/validations';
 import { mapPatientFormDataToCreateDto } from '@/utils/patientMappers';
-import {
-  getPatientDataByDni,
-  getPatientDataByEmail,
-  guardarPaciente,
-  updatePatient,
-} from '@/services/patientService';
+import { createPatient, updatePatient } from '@/services/patientService';
 
 type ValidatableFieldName = keyof PatientFormData;
 
 interface FormErrors {
+  email?: string;
   apellido?: string;
   nombre?: string;
   material?: string;
@@ -50,6 +43,7 @@ interface FormErrors {
 }
 
 interface FormTouched {
+  email?: boolean;
   apellido?: boolean;
   nombre?: boolean;
   material?: boolean;
@@ -77,10 +71,6 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [patientFound, setPatientFound] = useState<boolean>(false);
-  const [patientEditable, setPatientEditable] = useState<boolean>(false);
-  const isFormLocked = patientFound && !patientEditable;
 
   useEffect(() => {
     setFormData(resolvedInitialData);
@@ -88,92 +78,19 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     setTouched({});
     setSuccessMessage('');
     setErrorMessage('');
-    setEmail('');
-    setPatientFound(false);
-    setPatientEditable(false);
   }, [resolvedInitialData]);
-
-  const fetchPatientDataByDni = async (dni: string): Promise<void> => {
-    try {
-      const patientData = await getPatientDataByDni(dni);
-
-      if (!patientData) {
-          setPatientFound(false);
-          setPatientEditable(false);
-        setEmail('');
-        return;
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        dni: patientData.dni ?? dni,
-        apellido: patientData.apellido,
-        nombre: patientData.nombre,
-        telefono: patientData.telefono ?? '',
-        edad: patientData.edad,
-      }));
-
-      setErrors((prev) => ({
-        ...prev,
-        apellido: '',
-        nombre: '',
-        telefono: '',
-        edad: '',
-      }));
-
-      setEmail(patientData.email);
-      setPatientFound(true);
-      setPatientEditable(false);
-    } catch {
-        setPatientFound(false);
-        setPatientEditable(false);
-      setEmail('');
-      setErrorMessage('No se pudieron obtener los datos del paciente por DNI.');
-    }
-  };
-
-  const fetchPatientDataByEmail = async (emailToSearch: string): Promise<void> => {
-    try {
-      const patientData = await getPatientDataByEmail(emailToSearch);
-
-      if (!patientData) {
-        setPatientFound(false);
-        setPatientEditable(false);
-        return;
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        dni: patientData.dni ?? prev.dni,
-        apellido: patientData.apellido,
-        nombre: patientData.nombre,
-        telefono: patientData.telefono ?? '',
-        edad: patientData.edad,
-      }));
-
-      setErrors((prev) => ({
-        ...prev,
-        dni: '',
-        apellido: '',
-        nombre: '',
-        telefono: '',
-        edad: '',
-      }));
-
-      setEmail(patientData.email);
-      setPatientFound(true);
-      setPatientEditable(false);
-    } catch {
-      setPatientFound(false);
-      setPatientEditable(false);
-      setErrorMessage('No se pudieron obtener los datos del paciente por email.');
-    }
-  };
 
   const validateField = (fieldName: ValidatableFieldName, value: string): string => {
     let error = '';
 
     switch (fieldName) {
+      case 'email':
+        if (!value.trim()) {
+          error = 'Email es requerido.';
+        } else if (!value.includes('@')) {
+          error = 'Email inválido.';
+        }
+        break;
       case 'apellido':
         error = validateTextField(value, 'Apellido');
         break;
@@ -231,19 +148,6 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
       ...prev,
       [fieldName]: true,
     }));
-
-    if (fieldName === 'dni') {
-      setPatientFound(false);
-      setPatientEditable(false);
-      setEmail('');
-    }
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEmail(value);
-    setPatientFound(false);
-    setPatientEditable(false);
   };
 
   const handleSelectChange = (e: SelectChangeEvent<string>) => {
@@ -268,51 +172,18 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name } = e.target;
     const fieldName = name as ValidatableFieldName;
 
     setTouched((prev) => ({
       ...prev,
       [fieldName]: true,
     }));
-
-    if (mode !== 'create' || fieldName !== 'dni') {
-      return;
-    }
-
-    const dniValue = value.trim();
-    const dniError = validateDni(dniValue);
-
-    if (dniError) {
-      setEmail('');
-      return;
-    }
-
-    setErrorMessage('');
-    void fetchPatientDataByDni(dniValue);
-  };
-
-  const handleEmailBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (mode !== 'create') {
-      return;
-    }
-
-    const emailValue = e.target.value.trim();
-    if (!emailValue) {
-      return;
-    }
-
-    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
-    if (!isValidEmail) {
-      return;
-    }
-
-    setErrorMessage('');
-    void fetchPatientDataByEmail(emailValue);
   };
 
   const requiredFields: Array<ValidatableFieldName> = [
     'apellido',
+    'email',
     'nombre',
     'material',
     'edad',
@@ -340,14 +211,11 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   };
 
   const handleCancel = () => {
-      setPatientFound(false);
-      setPatientEditable(false);
     setFormData(resolvedInitialData);
     setErrors({});
     setTouched({});
     setSuccessMessage('');
     setErrorMessage('');
-    setEmail('');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -380,7 +248,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
         }
 
         await updatePatient(patientId, dto);
-        setSuccessMessage('Paciente actualizado correctamente.');
+        setSuccessMessage('Diagnóstico actualizado correctamente.');
       } else {
         const payload = {
           dni: formData.dni,
@@ -429,7 +297,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
         setSuccessMessage('Diagnóstico guardado y PDF generado correctamente.');
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ocurrió un error al guardar el paciente.';
+      const message = error instanceof Error ? error.message : 'Ocurrió un error al guardar el diagnóstico.';
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -455,259 +323,204 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
           </Alert>
         )}
 
-        {/* Información del paciente */}
         <Box
-          component="fieldset"
           sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            p: 2,
-            mb: 3,
-                      position: 'relative',
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            gap: 2,
           }}
         >
-          <Box component="legend" sx={{ px: 1, fontWeight: 'bold' }}>
-            Información del paciente
+          {/* Apellido */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Apellido"
+              name="apellido"
+              value={formData.apellido}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Ingrese apellido del paciente"
+              error={showError('apellido')}
+              helperText={showError('apellido') ? errors.apellido : ''}
+            />
           </Box>
-                    {patientFound && !patientEditable && (
-                      <Tooltip title="Editar datos del paciente">
-                        <Fab
-                          size="small"
-                          color="primary"
-                          onClick={() => setPatientEditable(true)}
-                          sx={{ position: 'absolute', top: 8, right: 8 }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </Fab>
-                      </Tooltip>
-                    )}
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-            }}
-          >
-            {/* DNI */}
-            <Box>
-              <TextField
-                fullWidth
-                label="DNI"
-                name="dni"
-                type="text"
-                value={formData.dni}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Número de DNI"
-                error={showError('dni')}
-                helperText={showError('dni') ? errors.dni : ''}
-                disabled={isFormLocked}
-              />
-            </Box>
 
-            {/* Email */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={handleEmailChange}
-                onBlur={handleEmailBlur}
-                placeholder="Se completa automáticamente según DNI"
-                disabled={isFormLocked}
-              />
-            </Box>
-
-            {/* Apellido */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Apellido"
-                name="apellido"
-                value={formData.apellido}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ingrese apellido del paciente"
-                error={showError('apellido')}
-                helperText={showError('apellido') ? errors.apellido : ''}
-                disabled={isFormLocked}
-              />
-            </Box>
-
-            {/* Nombre */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Nombre"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Ingrese nombre del paciente"
-                error={showError('nombre')}
-                helperText={showError('nombre') ? errors.nombre : ''}
-                disabled={isFormLocked}
-              />
-            </Box>
-
-            {/* Teléfono */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Teléfono"
-                name="telefono"
-                type="text"
-                value={formData.telefono}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Número de teléfono"
-                error={showError('telefono')}
-                helperText={showError('telefono') ? errors.telefono : ''}
-                disabled={isFormLocked}
-              />
-            </Box>
-
-            {/* Edad */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Edad"
-                name="edad"
-                type="text"
-                value={formData.edad}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Edad del paciente"
-                error={showError('edad')}
-                helperText={showError('edad') ? errors.edad : ''}
-                disabled={isFormLocked}
-              />
-            </Box>
+          {/* Nombre */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Nombre"
+              name="nombre"
+              value={formData.nombre}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Ingrese nombre del paciente"
+              error={showError('nombre')}
+              helperText={showError('nombre') ? errors.nombre : ''}
+            />
           </Box>
-        </Box>
 
-        {/* Información del diagnóstico */}
-        <Box
-          component="fieldset"
-          sx={{
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            p: 2,
-            mb: 3,
-          }}
-        >
-          <Box component="legend" sx={{ px: 1, fontWeight: 'bold' }}>
-            Información del diagnóstico
+          {/* Material */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Material"
+              name="material"
+              value={formData.material}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Tipo de material"
+              error={showError('material')}
+              helperText={showError('material') ? errors.material : ''}
+            />
           </Box>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-            }}
-          >
-            {/* Material */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Material"
-                name="material"
-                value={formData.material}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Tipo de material"
-                error={showError('material')}
-                helperText={showError('material') ? errors.material : ''}
-              />
-            </Box>
 
-            {/* Profesional Solicitante */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Profesional Solicitante"
-                name="profesionalSolicitante"
-                value={formData.profesionalSolicitante}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Nombre del profesional"
-                error={showError('profesionalSolicitante')}
-                helperText={showError('profesionalSolicitante') ? errors.profesionalSolicitante : ''}
-              />
-            </Box>
-
-            {/* Obra Social FAMAS */}
-            <Box>
-              <TextField
-                fullWidth
-                label="Obra Social FAMAS"
-                name="obraSocialFamas"
-                value={formData.obraSocialFamas}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Obra social o datos FAMAS"
-                error={showError('obraSocialFamas')}
-                helperText={showError('obraSocialFamas') ? errors.obraSocialFamas : ''}
-              />
-            </Box>
-
-            {/* Biopsias Previas */}
-            <Box>
-              <FormControl fullWidth error={showError('biopsiasPrevias')}>
-                <InputLabel id="biopsias-label">Biopsias Previas</InputLabel>
-                <Select
-                  labelId="biopsias-label"
-                  id="biopsias-select"
-                  name="biopsiasPrevias"
-                  value={formData.biopsiasPrevias}
-                  onChange={handleSelectChange}
-                  onBlur={handleBlur}
-                  label="Biopsias Previas"
-                >
-                  <MenuItem value="">Seleccione opción</MenuItem>
-                  <MenuItem value="Si">Sí</MenuItem>
-                  <MenuItem value="No">No</MenuItem>
-                </Select>
-                {showError('biopsiasPrevias') && (
-                  <FormHelperText>{errors.biopsiasPrevias}</FormHelperText>
-                )}
-              </FormControl>
-            </Box>
-
-            {/* Diagnóstico - ocupa toda la fila */}
-            <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>
-              <TextField
-                fullWidth
-                label="Diagnóstico"
-                name="diagnostico"
-                value={formData.diagnostico}
-                onChange={handleChange}
-                placeholder="Diagnóstico clínico o observaciones"
-                multiline
-                rows={3}
-              />
-            </Box>
+          {/* Edad */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Edad"
+              name="edad"
+              type="text"
+              value={formData.edad}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Edad del paciente"
+              error={showError('edad')}
+              helperText={showError('edad') ? errors.edad : ''}
+            />
           </Box>
-        </Box>
 
-        {/* Botones de acción */}
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button variant="outlined" color="secondary" disabled={isSubmitting} onClick={handleCancel}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={!isFormValid() || isSubmitting}
-            >
-              {isSubmitting ? 'Guardando...' : mode === 'edit' ? 'Actualizar Diagnóstico' : 'Guardar Diagnóstico'}
-            </Button>
+          {/* DNI */}
+          <Box>
+            <TextField
+              fullWidth
+              label="DNI"
+              name="dni"
+              type="text"
+              value={formData.dni}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Número de DNI"
+              error={showError('dni')}
+              helperText={showError('dni') ? errors.dni : ''}
+            />
+          </Box>
+
+          {/* Teléfono */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Teléfono"
+              name="telefono"
+              type="text"
+              value={formData.telefono}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Número de teléfono"
+              error={showError('telefono')}
+              helperText={showError('telefono') ? errors.telefono : ''}
+            />
+          </Box>
+
+          {/* Email */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Correo electrónico"
+              error={showError('email')}
+              helperText={showError('email') ? errors.email : ''}
+            />
+          </Box>
+
+          {/* Profesional Solicitante */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Profesional Solicitante"
+              name="profesionalSolicitante"
+              value={formData.profesionalSolicitante}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Nombre del profesional"
+              error={showError('profesionalSolicitante')}
+              helperText={showError('profesionalSolicitante') ? errors.profesionalSolicitante : ''}
+            />
+          </Box>
+
+          {/* Obra Social FAMAS */}
+          <Box>
+            <TextField
+              fullWidth
+              label="Obra Social FAMAS"
+              name="obraSocialFamas"
+              value={formData.obraSocialFamas}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="Obra social o datos FAMAS"
+              error={showError('obraSocialFamas')}
+              helperText={showError('obraSocialFamas') ? errors.obraSocialFamas : ''}
+            />
+          </Box>
+
+          {/* Biopsias Previas - FormControl con InputLabel y FormHelperText */}
+          <Box>
+            <FormControl fullWidth error={showError('biopsiasPrevias')}>
+              <InputLabel id="biopsias-label">Biopsias Previas</InputLabel>
+              <Select
+                labelId="biopsias-label"
+                id="biopsias-select"
+                name="biopsiasPrevias"
+                value={formData.biopsiasPrevias}
+                onChange={handleSelectChange}
+                onBlur={handleBlur}
+                label="Biopsias Previas"
+              >
+                <MenuItem value="">Seleccione opción</MenuItem>
+                <MenuItem value="Si">Sí</MenuItem>
+                <MenuItem value="No">No</MenuItem>
+              </Select>
+              {showError('biopsiasPrevias') && (
+                <FormHelperText>{errors.biopsiasPrevias}</FormHelperText>
+              )}
+            </FormControl>
+          </Box>
+
+          {/* Diagnóstico - ocupa toda la fila */}
+          <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>
+            <TextField
+              fullWidth
+              label="Diagnóstico"
+              name="diagnostico"
+              value={formData.diagnostico}
+              onChange={handleChange}
+              placeholder="Diagnóstico clínico o observaciones"
+              multiline
+              rows={3}
+            />
+          </Box>
+
+          {/* Botones de acción - ocupa toda la fila */}
+          <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' }, mt: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Button variant="outlined" color="secondary" disabled={isSubmitting} onClick={handleCancel}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={!isFormValid() || isSubmitting}
+              >
+                {isSubmitting ? 'Guardando...' : mode === 'edit' ? 'Actualizar Diagnóstico' : 'Guardar Diagnóstico'}
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Paper>

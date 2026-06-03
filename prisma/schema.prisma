@@ -66,4 +66,16 @@ model Informes {
 
   diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
   user        Users     @relation(fields: [userId], references: [id])
+  sharedLinks SharedReportLink[]
+}
+
+model SharedReportLink {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  password   String
+  informeId  String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  informe    Informes @relation(fields: [informeId], references: [id])
 }

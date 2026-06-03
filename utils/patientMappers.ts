@@ -5,6 +5,7 @@ export const mapPatientFormDataToCreateDto = (data: PatientFormData): CreatePati
   return {
     apellido: data.apellido,
     nombre: data.nombre,
+    email: data.email,
     material: data.material,
     edad: data.edad,
     dni: data.dni,
