@@ -106,16 +106,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Insertar nuevo Diagnosis
+    // 2. Insertar nuevo Diagnosis y crear Informe asociado
+    const diagnosisId = randomUUID();
+
     await client.query(
       `INSERT INTO "Diagnosis" (id, "patientId", diagnosis, material, "profesionalSolicitante", "biopsasPrevias")
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [randomUUID(), dni, diagnostico ?? '', material, profesionalSolicitante, biopsiasPreviasBool],
+      [diagnosisId, dni, diagnostico ?? '', material, profesionalSolicitante, biopsiasPreviasBool],
+    );
+
+    const userResult = await client.query<{ id: string }>('SELECT id FROM "Users" LIMIT 1');
+    const user = userResult.rows[0] ?? null;
+
+    if (!user) {
+      await client.query('ROLLBACK');
+      return NextResponse.json(
+        { ok: false, message: 'No hay usuarios disponibles para asociar el informe.' },
+        { status: 500 },
+      );
+    }
+
+    await client.query(
+      `INSERT INTO "Informes" (id, cuerpo, "diagnosisId", "userId")
+       VALUES ($1, $2, $3, $4)`,
+      [randomUUID(), diagnostico ?? '', diagnosisId, user.id],
     );
 
     await client.query('COMMIT');
 
-    return NextResponse.json({ ok: true, message: 'Paciente y diagnóstico guardados correctamente.' });
+    return NextResponse.json({ ok: true, message: 'Paciente, diagnóstico e informe guardados correctamente.' });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('[guardar_paciente] Error:', error);

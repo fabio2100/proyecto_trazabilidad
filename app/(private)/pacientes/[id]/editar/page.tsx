@@ -11,6 +11,7 @@ const mapPatientToFormData = (patient: Patient): PatientFormData => {
   return {
     apellido: patient.apellido,
     nombre: patient.nombre,
+    email: patient.email,
     material: patient.material,
     edad: patient.edad,
     dni: patient.dni,
