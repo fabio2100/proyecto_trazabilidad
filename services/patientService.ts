@@ -1,4 +1,8 @@
-import { CreatePatientDto } from '@/types/patient.dto';
+import {
+  CreatePatientDto,
+  GuardarPacienteDto,
+  PatientDataByDniDto,
+} from '@/types/patient.dto';
 import { Patient } from '@/types/patient';
 // Nota: `createPatient` ahora llama al endpoint real `/api/guardar_paciente`.
 
@@ -9,6 +13,12 @@ const USE_MOCK = true;
 const PATIENTS_ENDPOINT = '/patients';
 
 const STORAGE_KEY = 'patients';
+
+interface GetPatientDataResponse {
+  ok: boolean;
+  patient: PatientDataByDniDto | null;
+  message?: string;
+}
 
 const isBrowser = (): boolean => typeof window !== 'undefined';
 
