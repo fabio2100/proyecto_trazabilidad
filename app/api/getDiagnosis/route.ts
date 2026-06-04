@@ -12,6 +12,8 @@ interface DiagnosisRow {
   profesionalSolicitante: string;
   biopsasPrevias: boolean;
   createdAt: Date;
+  informeId: string | null;
+  informeCuerpo: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -27,9 +29,11 @@ export async function GET(request: NextRequest) {
   try {
     const pool = getPool();
     const result = await pool.query<DiagnosisRow>(
-      `SELECT id, "patientId", diagnosis, material, "profesionalSolicitante", "biopsasPrevias", "createdAt"
-       FROM "Diagnosis"
-       WHERE id = $1
+      `SELECT d.id, d."patientId", d.diagnosis, d.material, d."profesionalSolicitante", d."biopsasPrevias", d."createdAt",
+              i.id AS "informeId", i.cuerpo AS "informeCuerpo"
+       FROM "Diagnosis" d
+       LEFT JOIN "Informes" i ON i."diagnosisId" = d.id
+       WHERE d.id = $1
        LIMIT 1`,
       [id],
     );

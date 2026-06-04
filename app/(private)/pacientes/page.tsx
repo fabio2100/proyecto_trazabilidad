@@ -222,7 +222,7 @@ export default function DiagnosesPage() {
                         </Button>
                         <Button
                           component={Link}
-                          href={`/pacientes/${diagnosis.id}/editar`}
+                          href={`/informes/${diagnosis.id}`}
                           variant="outlined"
                           size="small"
                         >

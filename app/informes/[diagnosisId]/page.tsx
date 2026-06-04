@@ -23,6 +23,8 @@ interface DiagnosisData {
   profesionalSolicitante: string;
   biopsasPrevias: boolean;
   createdAt: string;
+  informeId: string | null;
+  informeCuerpo: string | null;
 }
 
 export default function InformesByDiagnosisPage() {
@@ -51,6 +53,9 @@ export default function InformesByDiagnosisPage() {
       .then((json) => {
         if (json.ok) {
           setDiagnosisData(json.data);
+          if (json.data.informeCuerpo) {
+            setInforme(json.data.informeCuerpo);
+          }
         } else {
           setDiagnosisError(json.message ?? 'Estudio no encontrado');
         }

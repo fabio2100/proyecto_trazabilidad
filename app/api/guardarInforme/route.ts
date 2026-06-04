@@ -10,11 +10,6 @@ interface GuardarInformeBody {
   informe: string;
 }
 
-interface PostgresError {
-  code?: string;
-  constraint?: string;
-}
-
 export async function POST(request: NextRequest) {
   let body: GuardarInformeBody;
 
@@ -42,21 +37,13 @@ export async function POST(request: NextRequest) {
 
     await pool.query(
       `INSERT INTO "Informes" (id, "diagnosisId", cuerpo, "userId")
-       VALUES ($1, $2, $3, $4)`,
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT ("diagnosisId") DO UPDATE SET cuerpo = EXCLUDED.cuerpo`,
       [randomUUID(), diagnosisId, informe, '1'],
     );
 
     return NextResponse.json({ ok: true, message: 'Informe guardado correctamente.' });
   } catch (error) {
-    const postgresError = error as PostgresError;
-
-    if (postgresError.code === '23505' && postgresError.constraint === 'Informes_diagnosisId_key') {
-      return NextResponse.json(
-        { ok: false, message: 'Ya existe un informe para este diagnóstico.' },
-        { status: 409 },
-      );
-    }
-
     console.error('[guardarInforme] Error:', error);
     return NextResponse.json(
       { ok: false, message: 'No se pudo guardar el informe.' },
