@@ -110,7 +110,7 @@ async function toPdfBuffer(payload: DiagnosisPdfBody) {
   drawLine('Informacion del diagnostico', 14, true);
   drawLine(`Material: ${payload.formData.material}`);
   drawLine(`Profesional solicitante: ${payload.formData.profesionalSolicitante}`);
-  drawLine(`Obra social FAMAS: ${payload.formData.obraSocialFamas}`);
+  drawLine(`Obra social FAMAS: ${payload.formData.obraSocialFamas?.trim() ? payload.formData.obraSocialFamas : 'Sin dato'}`);
   drawLine(`Biopsias previas: ${payload.formData.biopsiasPrevias}`);
   drawLine('Descripcion del diagnostico:', 11, true);
   drawParagraph(payload.formData.diagnostico || 'Sin descripcion.');
