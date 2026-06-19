@@ -12,3 +12,4 @@
 * Sugerencia: Cambiar edad por fecha de nacimiento
 * Sugerencia: Alerta de confirmación debe ser flotante
 *Dar formato al informe
+* Urgente: Agregar códigos de configuración del lector de código de barras
