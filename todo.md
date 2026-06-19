@@ -13,3 +13,4 @@
 * Sugerencia: Alerta de confirmación debe ser flotante
 *Dar formato al informe
 * Urgente: Agregar códigos de configuración del lector de código de barras
+* Medio: Ver autoapertura de browser al escanear código de barras
