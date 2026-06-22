@@ -58,13 +58,14 @@ export async function POST(request: NextRequest) {
     const useEncryption = process.env.PASSWORD_ENCRYPT === '1';
     const hashedPassword = useEncryption ? await bcrypt.hash(password, 10) : password;
 
-    // Crear nuevo usuario
+    // Crear nuevo usuario (perfilId = administrativo por defecto)
     const userId = randomUUID();
+    const PERFIL_ADMINISTRATIVO_ID = '11111111-1111-1111-1111-111111111111';
     const result = await pool.query<UserRow>(
-      `INSERT INTO "Users" (id, email, name, password, validated, "createdAt") 
-       VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
+      `INSERT INTO "Users" (id, email, name, password, validated, "createdAt", "perfilId") 
+       VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP, $5)
        RETURNING id, email, name`,
-      [userId, email, name || null, hashedPassword],
+      [userId, email, name || null, hashedPassword, PERFIL_ADMINISTRATIVO_ID],
     );
 
     const newUser = result.rows[0];
