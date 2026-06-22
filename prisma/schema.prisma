@@ -20,13 +20,13 @@ model Users {
   password  String
   validated Boolean  @default(true)
   createdAt DateTime @default(now())
-  perfilId  String   @default("11111111-1111-1111-1111-111111111111")
+  perfilId  Int      @default(1)
   informes  Informes[]
   perfil    Perfiles @relation(fields: [perfilId], references: [id])
 }
 
 model Perfiles {
-  id    String  @id
+  id    Int     @id
   tipo  String  @unique
   users Users[]
 }
