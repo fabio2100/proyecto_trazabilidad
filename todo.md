@@ -15,3 +15,4 @@
 * Urgente: Agregar códigos de configuración del lector de código de barras
 * Medio: Ver autoapertura de browser al escanear código de barras
 * Info: tamaño de papel de impresión: 50mm*25mm
+* Urgente: Paso intermedio para tecnico agregue imágenes

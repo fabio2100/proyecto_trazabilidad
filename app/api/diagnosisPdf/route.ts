@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFDocument, StandardFonts, LineCapStyle, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import QRCode from 'qrcode';
+import fs from 'fs';
+import path from 'path';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -63,73 +65,15 @@ async function toPdfBuffer(payload: DiagnosisPdfBody): Promise<Buffer> {
 
   page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
 
-  // --- Stick figure (right column, top row) — replicates figure-icon.svg (viewBox 0 0 25 25) ---
-  const SVG_SIZE = 25;
-  const figScale = Math.min(COL_W / SVG_SIZE, TOP_ROW_H / SVG_SIZE);
-  const figOffX = COL_W + (COL_W - SVG_SIZE * figScale) / 2;
-  const figOffY = BOT_ROW_H + (TOP_ROW_H - SVG_SIZE * figScale) / 2;
+  // --- Logo (right column, top row) ---
+  const logoBytes = fs.readFileSync(path.join(process.cwd(), 'public', 'logo.png'));
+  const logoImage = await pdfDoc.embedPng(logoBytes);
 
-  const toX = (svgX: number) => figOffX + svgX * figScale;
-  // SVG y=0 is top; PDF y=0 is bottom — flip vertically within the figure area
-  const toY = (svgY: number) => figOffY + (SVG_SIZE - svgY) * figScale;
+  const logoSize = Math.min(COL_W, TOP_ROW_H);
+  const logoX = COL_W + (COL_W - logoSize) / 2;
+  const logoY = BOT_ROW_H + (TOP_ROW_H - logoSize) / 2;
 
-  // Head: <circle cx="12.5" cy="6" r="3" />
-  page.drawCircle({
-    x: toX(12.5),
-    y: toY(6),
-    size: 3 * figScale,
-    color: dark,
-    borderColor: dark,
-    borderWidth: 0.5 * figScale,
-  });
-
-  // Body: <rect x="11" y="9.5" width="3" height="6" />
-  // PDF drawRectangle x,y is bottom-left corner → bottom of rect = SVG y + height
-  page.drawRectangle({
-    x: toX(11),
-    y: toY(9.5 + 6),
-    width: 3 * figScale,
-    height: 6 * figScale,
-    color: dark,
-    borderColor: dark,
-    borderWidth: 0.5 * figScale,
-  });
-
-  // Left arm: <line x1="11" y1="11" x2="7" y2="13" />
-  page.drawLine({
-    start: { x: toX(11), y: toY(11) },
-    end: { x: toX(7), y: toY(13) },
-    thickness: figScale,
-    color: dark,
-    lineCap: LineCapStyle.Round,
-  });
-
-  // Right arm: <line x1="14" y1="11" x2="18" y2="13" />
-  page.drawLine({
-    start: { x: toX(14), y: toY(11) },
-    end: { x: toX(18), y: toY(13) },
-    thickness: figScale,
-    color: dark,
-    lineCap: LineCapStyle.Round,
-  });
-
-  // Left leg: <line x1="11.5" y1="15.5" x2="9.5" y2="22" />
-  page.drawLine({
-    start: { x: toX(11.5), y: toY(15.5) },
-    end: { x: toX(9.5), y: toY(22) },
-    thickness: figScale,
-    color: dark,
-    lineCap: LineCapStyle.Round,
-  });
-
-  // Right leg: <line x1="13.5" y1="15.5" x2="15.5" y2="22" />
-  page.drawLine({
-    start: { x: toX(13.5), y: toY(15.5) },
-    end: { x: toX(15.5), y: toY(22) },
-    thickness: figScale,
-    color: dark,
-    lineCap: LineCapStyle.Round,
-  });
+  page.drawImage(logoImage, { x: logoX, y: logoY, width: logoSize, height: logoSize });
 
   // --- Patient name (bottom row, single column spanning full width) ---
   const patientName = `${payload.formData.nombre} ${payload.formData.apellido}`;
