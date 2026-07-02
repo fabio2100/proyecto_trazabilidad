@@ -1,5 +1,11 @@
 import { API_BASE_URL } from '@/utils/apiConfig';
 
+function getAuthHeader(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('auth');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export const apiPost = async <TRequest, TResponse>(
   url: string,
   data: TRequest
@@ -8,6 +14,7 @@ export const apiPost = async <TRequest, TResponse>(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     body: JSON.stringify(data),
   });

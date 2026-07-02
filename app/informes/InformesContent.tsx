@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DiagnosisData {
   id: string;
@@ -16,8 +17,8 @@ interface DiagnosisData {
 export default function InformesContent() {
   const searchParams = useSearchParams();
   const diagnosisId = useParams<{diagnosisId: string}>().diagnosisId || searchParams.get('diagnosisId') || '';
+  const { isAuthenticated, isAuthLoading } = useAuth();
 
-  const [authValid, setAuthValid] = useState<boolean | null>(null);
   const [informe, setInforme] = useState('');
   const [savingInforme, setSavingInforme] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisData | null>(null);
@@ -25,12 +26,7 @@ export default function InformesContent() {
   const [loadingDiagnosis, setLoadingDiagnosis] = useState(false);
 
   useEffect(() => {
-    const auth = localStorage.getItem('auth');
-    setAuthValid(auth === 'true');
-  }, []);
-
-  useEffect(() => {
-    if (!authValid || !diagnosisId) return;
+    if (!isAuthenticated || !diagnosisId) return;
 
     setLoadingDiagnosis(true);
     fetch(`/api/getDiagnosis?id=${encodeURIComponent(diagnosisId)}`)
@@ -44,13 +40,13 @@ export default function InformesContent() {
       })
       .catch(() => setDiagnosisError('Error al obtener el estudio.'))
       .finally(() => setLoadingDiagnosis(false));
-  }, [authValid, diagnosisId]);
+  }, [isAuthenticated, diagnosisId]);
 
-  if (authValid === null) {
+  if (isAuthLoading) {
     return null;
   }
 
-  if (!authValid || !diagnosisId) {
+  if (!isAuthenticated || !diagnosisId) {
     return <p>Acceso denegado</p>;
   }
 

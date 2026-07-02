@@ -41,14 +41,14 @@ export default function Login() {
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
 
-      const data = await res.json() as { ok: boolean; message?: string; userId?: string };
+      const data = await res.json() as { ok: boolean; message?: string; token?: string };
 
-      if (!res.ok || !data.ok || !data.userId) {
+      if (!res.ok || !data.ok || !data.token) {
         setErrorMessage(data.message ?? 'Credenciales incorrectas.');
         return;
       }
 
-      login(data.userId);
+      login(data.token);
       // La redirección ocurre automáticamente via useEffect cuando isAuthenticated cambia
     } catch {
       setErrorMessage('Error de conexión. Intente nuevamente.');

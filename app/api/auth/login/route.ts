@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { getPool } from '@/lib/db';
+import { signToken } from '@/lib/jwt';
 
 export const runtime = 'nodejs';
 
@@ -46,7 +47,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, message: ERROR_MESSAGE }, { status: 401 });
     }
 
-    return NextResponse.json({ ok: true, userId: user.id });
+    const token = await signToken(user.id);
+
+    const response = NextResponse.json({ ok: true, token });
+    response.cookies.set('session', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 8, // 8 horas
+      secure: process.env.NODE_ENV === 'production',
+    });
+
+    return response;
   } catch {
     return NextResponse.json({ ok: false, message: ERROR_MESSAGE }, { status: 500 });
   }

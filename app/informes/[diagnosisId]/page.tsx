@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Alert,
   Box,
@@ -29,8 +30,8 @@ interface DiagnosisData {
 
 export default function InformesByDiagnosisPage() {
   const diagnosisId = useParams<{ diagnosisId: string }>().diagnosisId || '';
+  const { isAuthenticated, isAuthLoading } = useAuth();
 
-  const [authValid, setAuthValid] = useState<boolean | null>(null);
   const [informe, setInforme] = useState('');
   const [savingInforme, setSavingInforme] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisData | null>(null);
@@ -40,12 +41,7 @@ export default function InformesByDiagnosisPage() {
   const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
-    const auth = localStorage.getItem('auth');
-    setAuthValid(auth === 'true');
-  }, []);
-
-  useEffect(() => {
-    if (!authValid || !diagnosisId) return;
+    if (!isAuthenticated || !diagnosisId) return;
 
     setLoadingDiagnosis(true);
     fetch(`/api/getDiagnosis?id=${encodeURIComponent(diagnosisId)}`)
@@ -62,9 +58,9 @@ export default function InformesByDiagnosisPage() {
       })
       .catch(() => setDiagnosisError('Error al obtener el estudio.'))
       .finally(() => setLoadingDiagnosis(false));
-  }, [authValid, diagnosisId]);
+  }, [isAuthenticated, diagnosisId]);
 
-  if (authValid === null) {
+  if (isAuthLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
         <CircularProgress />
@@ -72,7 +68,7 @@ export default function InformesByDiagnosisPage() {
     );
   }
 
-  if (!authValid || !diagnosisId) {
+  if (!isAuthenticated || !diagnosisId) {
     return (
       <Container maxWidth="sm" sx={{ mt: 6 }}>
         <Alert severity="error">Acceso denegado</Alert>
