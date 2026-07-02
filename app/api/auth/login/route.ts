@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, message: ERROR_MESSAGE }, { status: 401 });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, userId: user.id });
   } catch {
     return NextResponse.json({ ok: false, message: ERROR_MESSAGE }, { status: 500 });
   }

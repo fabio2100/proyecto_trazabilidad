@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Alert,
   Container,
   Typography,
   Box,
@@ -20,6 +21,7 @@ export default function Login() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
@@ -29,16 +31,30 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    setErrorMessage('');
     setIsSubmitting(true);
 
-    // Simular delay de autenticación (sin validar credenciales reales)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
 
-    login();
-    setIsSubmitting(false);
+      const data = await res.json() as { ok: boolean; message?: string; userId?: string };
 
-    // La redirección ocurre automáticamente via useEffect cuando isAuthenticated cambia
+      if (!res.ok || !data.ok || !data.userId) {
+        setErrorMessage(data.message ?? 'Credenciales incorrectas.');
+        return;
+      }
+
+      login(data.userId);
+      // La redirección ocurre automáticamente via useEffect cuando isAuthenticated cambia
+    } catch {
+      setErrorMessage('Error de conexión. Intente nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isAuthLoading) {
@@ -57,6 +73,11 @@ export default function Login() {
           </Typography>
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
+            {errorMessage && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {errorMessage}
+              </Alert>
+            )}
             <TextField
               fullWidth
               label="Email"
@@ -99,9 +120,7 @@ export default function Login() {
               </Link>
             </Typography>
 
-            <Typography variant="caption" color="textSecondary" sx={{ mt: 2, display: 'block', textAlign: 'center' }}>
-              Nota: Este es un login simulado sin validación de credenciales.
-            </Typography>
+
           </Box>
         </Paper>
       </Box>
