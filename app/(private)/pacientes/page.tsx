@@ -29,6 +29,7 @@ export default function DiagnosesPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [diagnosisIdDeleting, setDiagnosisIdDeleting] = useState<string | null>(null);
+  const [etiquetaLoadingId, setEtiquetaLoadingId] = useState<string | null>(null);
 
   // Estados para el Dialog de generación de links
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -71,6 +72,48 @@ export default function DiagnosesPage() {
       setErrorMessage('No se pudo eliminar el diagnóstico. Intente nuevamente.');
     } finally {
       setDiagnosisIdDeleting(null);
+    }
+  };
+
+  const handleVerEtiqueta = async (diagnosis: Diagnosis) => {
+    setEtiquetaLoadingId(diagnosis.id);
+    try {
+      const qrTargetUrl = `${window.location.origin}/informes?diagnosisId=${encodeURIComponent(diagnosis.id)}`;
+      const pdfResponse = await fetch('/api/diagnosisPdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          diagnosisId: diagnosis.id,
+          qrTargetUrl,
+          formData: {
+            dni: diagnosis.patientId ?? '',
+            nombre: diagnosis.patientNombre ?? '',
+            apellido: diagnosis.patientApellido ?? '',
+            edad: '',
+            email: '',
+            telefono: '',
+            material: diagnosis.material ?? '',
+            profesionalSolicitante: diagnosis.profesionalSolicitante ?? '',
+            obraSocialFamas: '',
+            biopsiasPrevias: diagnosis.biopsasPrevias ? 'Sí' : 'No',
+            diagnostico: diagnosis.diagnosis ?? '',
+          },
+        }),
+      });
+
+      if (!pdfResponse.ok) {
+        setErrorMessage('No se pudo generar la etiqueta PDF.');
+        return;
+      }
+
+      const pdfBlob = await pdfResponse.blob();
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+    } catch {
+      setErrorMessage('Error al generar la etiqueta. Intente nuevamente.');
+    } finally {
+      setEtiquetaLoadingId(null);
     }
   };
 
@@ -226,7 +269,15 @@ export default function DiagnosesPage() {
                           variant="outlined"
                           size="small"
                         >
-                          Editar
+                          Editar Informe
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => void handleVerEtiqueta(diagnosis)}
+                          disabled={etiquetaLoadingId === diagnosis.id}
+                        >
+                          {etiquetaLoadingId === diagnosis.id ? 'Generando...' : 'Ver etiqueta'}
                         </Button>
                         <Button
                           variant="outlined"
