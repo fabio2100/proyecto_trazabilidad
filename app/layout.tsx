@@ -15,6 +15,9 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "Aplicación de Trazabilidad de Muestras Patológicas",
   description: "Sistema de trazabilidad para muestras patológicas",
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({
