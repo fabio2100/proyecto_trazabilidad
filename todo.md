@@ -17,3 +17,5 @@
 * Info: tamaño de papel de impresión: 50mm*25mm
 * Urgente: Paso intermedio para tecnico agregue imágenes
 * Urgente: hash password
+* En informes content: Auth valid no debe ser más true, debe validar usuario
+* Al guardar informe no debe ser más 1 el id de usuario si no el verdadero id
