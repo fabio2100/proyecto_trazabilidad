@@ -1,14 +1,14 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { decodeTokenPayload, isTokenExpired } from '@/lib/jwt';
+import { createContext, useEffect, useState } from 'react';
+import { decodeTokenPayload } from '@/lib/jwt';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isAuthLoading: boolean;
   userId: string | null;
   login: (token: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -19,32 +19,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth');
-    if (token && !isTokenExpired(token)) {
-      const payload = decodeTokenPayload(token);
-      if (payload?.userId) {
-        setIsAuthenticated(true);
-        setUserId(payload.userId);
-      }
-    } else {
-      localStorage.removeItem('auth');
-    }
-    setIsAuthLoading(false);
+    fetch('/api/auth/validate', { method: 'GET', credentials: 'include' })
+      .then((res) => {
+        if (res.ok) return res.json() as Promise<{ ok: boolean; userId: string }>;
+        return null;
+      })
+      .then((data) => {
+        if (data?.ok && data.userId) {
+          setIsAuthenticated(true);
+          setUserId(data.userId);
+        }
+      })
+      .catch(() => {
+        // Network error — treat as unauthenticated
+      })
+      .finally(() => setIsAuthLoading(false));
   }, []);
 
   const login = (token: string) => {
     const payload = decodeTokenPayload(token);
     if (!payload?.userId) return;
-    localStorage.setItem('auth', token);
     setIsAuthenticated(true);
     setUserId(payload.userId);
   };
 
   const logout = async () => {
-    localStorage.removeItem('auth');
     setIsAuthenticated(false);
     setUserId(null);
-    // Limpia la cookie HTTP-only del servidor
     await fetch('/api/auth/logout', { method: 'POST' });
   };
 

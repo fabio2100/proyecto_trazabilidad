@@ -14,3 +14,4 @@
 * Info: tamaño de papel de impresión: 50mm*25mm
 * Urgente: Paso intermedio para tecnico agregue imágenes
 * Medio: password encrytp
+* Bajo: Fix warning The "middleware" file convention is deprecated. Please use "proxy" instead. 
