@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { getPool } from '@/lib/db';
+import { verifyToken } from '@/lib/jwt';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,13 +34,19 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const sessionToken = request.cookies.get('session')?.value;
+    if (!sessionToken) {
+      return NextResponse.json({ ok: false, message: 'No autenticado.' }, { status: 401 });
+    }
+    const { userId } = await verifyToken(sessionToken);
+
     const pool = getPool();
 
     await pool.query(
       `INSERT INTO "Informes" (id, "diagnosisId", cuerpo, "userId")
        VALUES ($1, $2, $3, $4)
        ON CONFLICT ("diagnosisId") DO UPDATE SET cuerpo = EXCLUDED.cuerpo`,
-      [randomUUID(), diagnosisId, informe, '1'],
+      [randomUUID(), diagnosisId, informe, userId],
     );
 
     return NextResponse.json({ ok: true, message: 'Informe guardado correctamente.' });

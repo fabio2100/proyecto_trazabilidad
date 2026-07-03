@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Alert,
@@ -10,11 +10,13 @@ import {
   CircularProgress,
   Container,
   Divider,
+  IconButton,
   Paper,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 interface DiagnosisData {
   id: string;
@@ -31,6 +33,7 @@ interface DiagnosisData {
 export default function InformesByDiagnosisPage() {
   const diagnosisId = useParams<{ diagnosisId: string }>().diagnosisId || '';
   const { isAuthenticated, isAuthLoading } = useAuth();
+  const router = useRouter();
 
   const [informe, setInforme] = useState('');
   const [savingInforme, setSavingInforme] = useState(false);
@@ -130,9 +133,14 @@ export default function InformesByDiagnosisPage() {
       <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 2 }}>
         <Stack spacing={3}>
           <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-              Carga de Informe
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton onClick={() => router.push('/pacientes')} size="small" aria-label="Volver a pacientes">
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+                Carga de Informe
+              </Typography>
+            </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               ID del estudio: {diagnosisId}
             </Typography>

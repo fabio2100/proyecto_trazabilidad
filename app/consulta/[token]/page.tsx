@@ -29,12 +29,12 @@ export default function SharedReportAccessPage() {
     setIsLoadingPdf(true);
 
     try {
-      const response = await fetch('/api/informePdf', {
+      const response = await fetch('/api/sharedReports/pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ idInforme }),
+        body: JSON.stringify({ token, informeId: idInforme }),
       });
 
       if (!response.ok) {

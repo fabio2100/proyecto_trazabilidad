@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Container,
   Typography,
@@ -10,12 +10,15 @@ import {
   Button,
   CircularProgress,
   Alert,
+  IconButton,
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 export default function PdfViewerPage() {
   const params = useParams();
   const idInforme = params.idInforme as string;
+  const router = useRouter();
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -87,9 +90,14 @@ export default function PdfViewerPage() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper elevation={2} sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            Visualizador de Informe
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton onClick={() => router.push('/pacientes')} size="small" aria-label="Volver a pacientes">
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h4" component="h1">
+              Visualizador de Informe
+            </Typography>
+          </Box>
           <Button
             variant="contained"
             color="primary"
