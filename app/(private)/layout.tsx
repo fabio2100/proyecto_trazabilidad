@@ -3,6 +3,7 @@ import AppTopBar from '../../components/layout/AppTopBar';
 import AppSidebar from '../../components/layout/AppSidebar';
 import PrivateLayoutContent from '../../components/layout/PrivateLayoutContent';
 import PrivateRouteGuard from '../../components/auth/PrivateRouteGuard';
+import { SidebarProvider } from '@/context/SidebarContext';
 
 export default function PrivateLayout({
   children,
@@ -11,11 +12,13 @@ export default function PrivateLayout({
 }) {
   return (
     <PrivateRouteGuard>
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-        <AppTopBar />
-        <AppSidebar />
-        <PrivateLayoutContent>{children}</PrivateLayoutContent>
-      </Box>
+      <SidebarProvider>
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+          <AppTopBar />
+          <AppSidebar />
+          <PrivateLayoutContent>{children}</PrivateLayoutContent>
+        </Box>
+      </SidebarProvider>
     </PrivateRouteGuard>
   );
 }
