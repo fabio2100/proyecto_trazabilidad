@@ -15,3 +15,4 @@
 * Urgente: Paso intermedio para tecnico agregue imágenes
 * Medio: password encrytp
 * Bajo: Fix warning The "middleware" file convention is deprecated. Please use "proxy" instead. 
+* bajo: Agregar fechas informes, agregar ordenar la tabla, paginación

@@ -10,7 +10,8 @@ export default function PrivateRouteGuard({ children }: { children: React.ReactN
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
-      router.replace('/login');
+      const currentUrl = window.location.pathname + window.location.search;
+      router.replace(`/login?redirectTo=${encodeURIComponent(currentUrl)}`);
     }
   }, [isAuthLoading, isAuthenticated, router]);
 

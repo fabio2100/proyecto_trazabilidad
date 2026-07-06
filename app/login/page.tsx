@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Alert,
   Container,
@@ -14,9 +14,11 @@ import {
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function Login() {
+function LoginContent() {
   const { isAuthenticated, isAuthLoading, login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
 
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -25,9 +27,9 @@ export default function Login() {
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     }
-  }, [isAuthenticated, isAuthLoading, router]);
+  }, [isAuthenticated, isAuthLoading, router, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -125,5 +127,13 @@ export default function Login() {
         </Paper>
       </Box>
     </Container>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }

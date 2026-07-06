@@ -41,7 +41,9 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ ok: false, message: 'No autenticado' }, { status: 401 });
     }
-    return NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirectTo', pathname + request.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
   }
 
   try {
@@ -52,7 +54,9 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ ok: false, message: 'Token inválido o expirado' }, { status: 401 });
     }
-    const response = NextResponse.redirect(new URL('/login', request.url));
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirectTo', pathname + request.nextUrl.search);
+    const response = NextResponse.redirect(loginUrl);
     response.cookies.delete('session');
     return response;
   }
