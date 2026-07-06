@@ -6,13 +6,15 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 interface InformePdfBody {
-  idInforme: string;
+  idInforme?: string;
+  diagnosisId?: string;
+  onlyDiagnosis?: boolean;
 }
 
 interface InformeJoinRow {
-  informeId: string;
-  informeCuerpo: string;
-  informeCreatedAt: Date;
+  informeId: string | null;
+  informeCuerpo: string | null;
+  informeCreatedAt: Date | null;
   diagnosisId: string;
   diagnosis: string;
   material: string;
@@ -27,9 +29,9 @@ interface InformeJoinRow {
   patientTelefono: string | null;
 }
 
-async function toPdfBuffer(data: InformeJoinRow) {
+async function toPdfBuffer(data: InformeJoinRow, onlyDiagnosis = false) {
   const pdfDoc = await PDFDocument.create();
-  pdfDoc.setTitle(`Informe ${data.informeId}`);
+  pdfDoc.setTitle(onlyDiagnosis ? `Diagnostico ${data.diagnosisId}` : `Informe ${data.informeId ?? ''}`);
 
   const page = pdfDoc.addPage([595.28, 841.89]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -70,7 +72,7 @@ async function toPdfBuffer(data: InformeJoinRow) {
     }
   };
 
-  drawLine('Informe Medico', 20, true);
+  drawLine(onlyDiagnosis ? 'Detalle de Diagnóstico' : 'Informe Medico', 20, true);
   y -= 8;
 
   drawLine('Informacion de paciente', 14, true);
@@ -90,11 +92,13 @@ async function toPdfBuffer(data: InformeJoinRow) {
   drawLine(`Fecha diagnostico: ${new Date(data.diagnosisCreatedAt).toLocaleString()}`);
   y -= 8;
 
-  drawLine('Informacion de informe', 14, true);
-  drawLine(`ID informe: ${data.informeId}`);
-  drawLine(`Fecha informe: ${new Date(data.informeCreatedAt).toLocaleString()}`);
-  drawLine('Cuerpo:', 11, true);
-  drawParagraph(data.informeCuerpo);
+  if (!onlyDiagnosis) {
+    drawLine('Informacion de informe', 14, true);
+    drawLine(`ID informe: ${data.informeId ?? ''}`);
+    drawLine(`Fecha informe: ${data.informeCreatedAt ? new Date(data.informeCreatedAt).toLocaleString() : ''}`);
+    drawLine('Cuerpo:', 11, true);
+    drawParagraph(data.informeCuerpo || '');
+  }
 
   const bytes = await pdfDoc.save();
   return Buffer.from(bytes);
@@ -113,61 +117,98 @@ export async function POST(request: NextRequest) {
   }
 
   const idInforme = body.idInforme?.trim() ?? '';
+  const diagnosisId = body.diagnosisId?.trim() ?? '';
+  const onlyDiagnosis = !!body.onlyDiagnosis;
 
-  if (!idInforme) {
+  if (!idInforme && !diagnosisId) {
     return NextResponse.json(
-      { ok: false, message: 'El campo idInforme es obligatorio.' },
+      { ok: false, message: 'Se debe especificar idInforme o diagnosisId.' },
       { status: 400 },
     );
   }
 
   try {
     const pool = getPool();
-    const result = await pool.query<InformeJoinRow>(
-      `SELECT
-         i.id AS "informeId",
-         i.cuerpo AS "informeCuerpo",
-         i."createdAt" AS "informeCreatedAt",
-         d.id AS "diagnosisId",
-         d.diagnosis,
-         d.material,
-         d."profesionalSolicitante",
-         d."biopsasPrevias",
-         d."createdAt" AS "diagnosisCreatedAt",
-         p.dni AS "patientDni",
-         p.nombre AS "patientNombre",
-         p.apellido AS "patientApellido",
-         p.email AS "patientEmail",
-         p.age AS "patientAge",
-         p.telefono AS "patientTelefono"
-       FROM "Informes" i
-       INNER JOIN "Diagnosis" d ON d.id = i."diagnosisId"
-       INNER JOIN "Patients" p ON p.dni = d."patientId"
-       WHERE i.id = $1
-       LIMIT 1`,
-      [idInforme],
-    );
+    let query = '';
+    let queryParam = '';
+
+    if (idInforme) {
+      query = `
+        SELECT
+          i.id AS "informeId",
+          i.cuerpo AS "informeCuerpo",
+          i."createdAt" AS "informeCreatedAt",
+          d.id AS "diagnosisId",
+          d.diagnosis,
+          d.material,
+          d."profesionalSolicitante",
+          d."biopsasPrevias",
+          d."createdAt" AS "diagnosisCreatedAt",
+          p.dni AS "patientDni",
+          p.nombre AS "patientNombre",
+          p.apellido AS "patientApellido",
+          p.email AS "patientEmail",
+          p.age AS "patientAge",
+          p.telefono AS "patientTelefono"
+        FROM "Informes" i
+        INNER JOIN "Diagnosis" d ON d.id = i."diagnosisId"
+        INNER JOIN "Patients" p ON p.dni = d."patientId"
+        WHERE i.id = $1
+        LIMIT 1
+      `;
+      queryParam = idInforme;
+    } else {
+      query = `
+        SELECT
+          i.id AS "informeId",
+          i.cuerpo AS "informeCuerpo",
+          i."createdAt" AS "informeCreatedAt",
+          d.id AS "diagnosisId",
+          d.diagnosis,
+          d.material,
+          d."profesionalSolicitante",
+          d."biopsasPrevias",
+          d."createdAt" AS "diagnosisCreatedAt",
+          p.dni AS "patientDni",
+          p.nombre AS "patientNombre",
+          p.apellido AS "patientApellido",
+          p.email AS "patientEmail",
+          p.age AS "patientAge",
+          p.telefono AS "patientTelefono"
+        FROM "Diagnosis" d
+        INNER JOIN "Patients" p ON p.dni = d."patientId"
+        LEFT JOIN "Informes" i ON i."diagnosisId" = d.id
+        WHERE d.id = $1
+        LIMIT 1
+      `;
+      queryParam = diagnosisId;
+    }
+
+    const result = await pool.query<InformeJoinRow>(query, [queryParam]);
 
     if (result.rows.length === 0) {
       return NextResponse.json(
-        { ok: false, message: 'Informe no encontrado.' },
+        { ok: false, message: idInforme ? 'Informe no encontrado.' : 'Diagnóstico no encontrado.' },
         { status: 404 },
       );
     }
 
-    const pdfBuffer = await toPdfBuffer(result.rows[0]);
+    const pdfBuffer = await toPdfBuffer(result.rows[0], onlyDiagnosis);
+    const filename = onlyDiagnosis
+      ? `diagnostico-${result.rows[0].diagnosisId}.pdf`
+      : `informe-${idInforme}.pdf`;
 
     return new NextResponse(pdfBuffer as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="informe-${idInforme}.pdf"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
   } catch (error) {
     console.error('[informePdf] Error:', error);
     return NextResponse.json(
-      { ok: false, message: 'No se pudo generar el PDF del informe.' },
+      { ok: false, message: 'No se pudo generar el PDF.' },
       { status: 500 },
     );
   }

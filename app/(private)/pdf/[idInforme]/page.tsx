@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Container,
   Typography,
@@ -15,10 +15,12 @@ import {
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-export default function PdfViewerPage() {
+function PdfViewerContent() {
   const params = useParams();
   const idInforme = params.idInforme as string;
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const onlyDiagnosis = searchParams.get('onlyDiagnosis') === 'true';
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -32,7 +34,11 @@ export default function PdfViewerPage() {
       setPdfUrl(null);
 
       if (!idInforme) {
-        setErrorMessage('No se especificó el informe a visualizar.');
+        setErrorMessage(
+          onlyDiagnosis
+            ? 'No se especificó el diagnóstico a visualizar.'
+            : 'No se especificó el informe a visualizar.'
+        );
         setIsLoading(false);
         return;
       }
@@ -43,11 +49,18 @@ export default function PdfViewerPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ idInforme }),
+          body: JSON.stringify({
+            ...(onlyDiagnosis ? { diagnosisId: idInforme } : { idInforme }),
+            onlyDiagnosis,
+          }),
         });
 
         if (!response.ok) {
-          setErrorMessage('No se pudo cargar el informe. Intente nuevamente.');
+          setErrorMessage(
+            onlyDiagnosis
+              ? 'No se pudo cargar el diagnóstico. Intente nuevamente.'
+              : 'No se pudo cargar el informe. Intente nuevamente.'
+          );
           setIsLoading(false);
           return;
         }
@@ -59,7 +72,11 @@ export default function PdfViewerPage() {
         setPdfUrl(url);
       } catch (error) {
         console.error('Error al cargar PDF:', error);
-        setErrorMessage('Error al cargar el informe. Intente nuevamente.');
+        setErrorMessage(
+          onlyDiagnosis
+            ? 'Error al cargar el diagnóstico. Intente nuevamente.'
+            : 'Error al cargar el informe. Intente nuevamente.'
+        );
       } finally {
         setIsLoading(false);
       }
@@ -73,14 +90,14 @@ export default function PdfViewerPage() {
         URL.revokeObjectURL(pdfUrl);
       }
     };
-  }, [idInforme]);
+  }, [idInforme, onlyDiagnosis]);
 
   const handleDownloadPdf = () => {
     if (!pdfBlob) return;
 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(pdfBlob);
-    link.download = `informe_${idInforme}.pdf`;
+    link.download = onlyDiagnosis ? `diagnostico_${idInforme}.pdf` : `informe_${idInforme}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -95,7 +112,7 @@ export default function PdfViewerPage() {
               <ArrowBackIcon />
             </IconButton>
             <Typography variant="h4" component="h1">
-              Visualizador de Informe
+              {onlyDiagnosis ? 'Visualizador de Diagnóstico' : 'Visualizador de Informe'}
             </Typography>
           </Box>
           <Button
@@ -143,5 +160,13 @@ export default function PdfViewerPage() {
         )}
       </Paper>
     </Container>
+  );
+}
+
+export default function PdfViewerPage() {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress /></Box>}>
+      <PdfViewerContent />
+    </Suspense>
   );
 }

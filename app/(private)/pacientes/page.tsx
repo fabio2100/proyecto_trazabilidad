@@ -344,42 +344,6 @@ export default function DiagnosesPage() {
                   </TableCell>
                   <TableCell>
                     <TableSortLabel
-                      active={orderBy === 'diagnosis'}
-                      direction={orderBy === 'diagnosis' ? order : 'asc'}
-                      onClick={() => handleRequestSort('diagnosis')}
-                    >
-                      Diagnóstico
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'material'}
-                      direction={orderBy === 'material' ? order : 'asc'}
-                      onClick={() => handleRequestSort('material')}
-                    >
-                      Material
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'profesionalSolicitante'}
-                      direction={orderBy === 'profesionalSolicitante' ? order : 'asc'}
-                      onClick={() => handleRequestSort('profesionalSolicitante')}
-                    >
-                      Profesional Solicitante
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={orderBy === 'biopsasPrevias'}
-                      direction={orderBy === 'biopsasPrevias' ? order : 'asc'}
-                      onClick={() => handleRequestSort('biopsasPrevias')}
-                    >
-                      Biopsias Previas
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
                       active={orderBy === 'created_at'}
                       direction={orderBy === 'created_at' ? order : 'asc'}
                       onClick={() => handleRequestSort('created_at')}
@@ -414,14 +378,18 @@ export default function DiagnosesPage() {
                       )}
                     </TableCell>
                     <TableCell>{diagnosis.patientId}</TableCell>
-                    <TableCell>{diagnosis.diagnosis}</TableCell>
-                    <TableCell>{diagnosis.material}</TableCell>
-                    <TableCell>{diagnosis.profesionalSolicitante}</TableCell>
-                    <TableCell>{diagnosis.biopsasPrevias ? 'Sí' : 'No'}</TableCell>
                     <TableCell>{new Date(diagnosis.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>{diagnosis.hasInforme ? 'Disponible' : 'Pendiente'}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          component={Link}
+                          href={`/pdf/${diagnosis.id}?onlyDiagnosis=true`}
+                          variant="outlined"
+                          size="small"
+                        >
+                          Ver diagnóstico
+                        </Button>
                         <Button
                           component={Link}
                           href={`/pdf/${diagnosis.informeId}`}
@@ -432,6 +400,7 @@ export default function DiagnosesPage() {
                         >
                           Ver informe
                         </Button>
+
                         <Button
                           component={Link}
                           href={`/informes/${diagnosis.id}`}
