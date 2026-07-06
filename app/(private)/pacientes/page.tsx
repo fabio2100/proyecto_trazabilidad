@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Alert,
@@ -20,9 +20,12 @@ import {
   TableRow,
   TextField,
   Typography,
+  TableSortLabel,
+  InputAdornment,
 } from '@mui/material';
 import { deleteDiagnosis, getDiagnoses } from '@/services/diagnosisService';
 import { Diagnosis } from '@/services/diagnosisService';
+import SearchIcon from '@mui/icons-material/Search';
 
 export default function DiagnosesPage() {
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
@@ -30,6 +33,91 @@ export default function DiagnosesPage() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [diagnosisIdDeleting, setDiagnosisIdDeleting] = useState<string | null>(null);
   const [etiquetaLoadingId, setEtiquetaLoadingId] = useState<string | null>(null);
+
+  // Estados para ordenación y búsqueda
+  const [orderBy, setOrderBy] = useState<keyof Diagnosis | 'paciente'>('created_at');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  const handleRequestSort = (property: keyof Diagnosis | 'paciente') => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const filteredDiagnoses = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return diagnoses;
+    }
+
+    const term = searchTerm.toLowerCase().trim();
+
+    return diagnoses.filter((d) => {
+      // Check patient name
+      const patientName = `${d.patientApellido || ''}, ${d.patientNombre || ''}`.toLowerCase();
+      if (patientName.includes(term)) return true;
+
+      // Check dni (patientId)
+      if (d.patientId?.toLowerCase().includes(term)) return true;
+
+      // Check diagnosis
+      if (d.diagnosis?.toLowerCase().includes(term)) return true;
+
+      // Check material
+      if (d.material?.toLowerCase().includes(term)) return true;
+
+      // Check profesionalSolicitante
+      if (d.profesionalSolicitante?.toLowerCase().includes(term)) return true;
+
+      // Check fecha
+      const dateStr = new Date(d.created_at).toLocaleDateString().toLowerCase();
+      if (dateStr.includes(term)) return true;
+
+      // Check informe
+      const informeStatus = (d.hasInforme ? 'Disponible' : 'Pendiente').toLowerCase();
+      if (informeStatus.includes(term)) return true;
+
+      return false;
+    });
+  }, [diagnoses, searchTerm]);
+
+  const sortedDiagnoses = useMemo(() => {
+    return [...filteredDiagnoses].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      if (orderBy === 'paciente') {
+        const aName = `${a.patientApellido || ''}, ${a.patientNombre || ''}`.toLowerCase();
+        const bName = `${b.patientApellido || ''}, ${b.patientNombre || ''}`.toLowerCase();
+        aVal = aName;
+        bVal = bName;
+      } else if (orderBy === 'created_at') {
+        aVal = new Date(a.created_at).getTime();
+        bVal = new Date(b.created_at).getTime();
+      } else {
+        aVal = a[orderBy];
+        bVal = b[orderBy];
+        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+      }
+
+      if (aVal === undefined || aVal === null) return order === 'asc' ? 1 : -1;
+      if (bVal === undefined || bVal === null) return order === 'asc' ? -1 : 1;
+
+      if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+        if (aVal === bVal) return 0;
+        return aVal ? (order === 'asc' ? 1 : -1) : (order === 'asc' ? -1 : 1);
+      }
+
+      if (aVal < bVal) {
+        return order === 'asc' ? -1 : 1;
+      }
+      if (aVal > bVal) {
+        return order === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [filteredDiagnoses, orderBy, order]);
 
   // Estados para el Dialog de generación de links
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -196,6 +284,23 @@ export default function DiagnosesPage() {
           Diagnósticos
         </Typography>
 
+        <TextField
+          placeholder="Busque sobre la columna"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          variant="outlined"
+          size="small"
+          fullWidth
+          sx={{ mb: 3 }}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />
+
         {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
@@ -215,23 +320,87 @@ export default function DiagnosesPage() {
         )}
 
         {!isLoading && !errorMessage && diagnoses.length > 0 && (
-          <Box sx={{ mt: 2, overflowX: 'auto' }}>
-            <Table size="small" aria-label="Listado de diagnósticos">
+          <Box sx={{ mt: 2, overflow: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
+            <Table size="small" stickyHeader aria-label="Listado de diagnósticos">
               <TableHead>
                 <TableRow>
-                  <TableCell>Paciente</TableCell>
-                  <TableCell>DNI</TableCell>
-                  <TableCell>Diagnóstico</TableCell>
-                  <TableCell>Material</TableCell>
-                  <TableCell>Profesional Solicitante</TableCell>
-                  <TableCell>Biopsias Previas</TableCell>
-                  <TableCell>Fecha</TableCell>
-                  <TableCell>Informe</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'paciente'}
+                      direction={orderBy === 'paciente' ? order : 'asc'}
+                      onClick={() => handleRequestSort('paciente')}
+                    >
+                      Paciente
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'patientId'}
+                      direction={orderBy === 'patientId' ? order : 'asc'}
+                      onClick={() => handleRequestSort('patientId')}
+                    >
+                      DNI
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'diagnosis'}
+                      direction={orderBy === 'diagnosis' ? order : 'asc'}
+                      onClick={() => handleRequestSort('diagnosis')}
+                    >
+                      Diagnóstico
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'material'}
+                      direction={orderBy === 'material' ? order : 'asc'}
+                      onClick={() => handleRequestSort('material')}
+                    >
+                      Material
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'profesionalSolicitante'}
+                      direction={orderBy === 'profesionalSolicitante' ? order : 'asc'}
+                      onClick={() => handleRequestSort('profesionalSolicitante')}
+                    >
+                      Profesional Solicitante
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'biopsasPrevias'}
+                      direction={orderBy === 'biopsasPrevias' ? order : 'asc'}
+                      onClick={() => handleRequestSort('biopsasPrevias')}
+                    >
+                      Biopsias Previas
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'created_at'}
+                      direction={orderBy === 'created_at' ? order : 'asc'}
+                      onClick={() => handleRequestSort('created_at')}
+                    >
+                      Fecha
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={orderBy === 'hasInforme'}
+                      direction={orderBy === 'hasInforme' ? order : 'asc'}
+                      onClick={() => handleRequestSort('hasInforme')}
+                    >
+                      Informe
+                    </TableSortLabel>
+                  </TableCell>
                   <TableCell>Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {diagnoses.map((diagnosis) => (
+                {sortedDiagnoses.map((diagnosis) => (
                   <TableRow key={diagnosis.id} hover>
                     <TableCell>
                       {diagnosis.patientApellido && diagnosis.patientNombre ? (
