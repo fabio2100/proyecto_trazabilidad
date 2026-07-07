@@ -25,9 +25,12 @@ import {
 } from '@mui/material';
 import { deleteDiagnosis, getDiagnoses } from '@/services/diagnosisService';
 import { Diagnosis } from '@/services/diagnosisService';
+import { useAuth } from '@/hooks/useAuth';
 import SearchIcon from '@mui/icons-material/Search';
 
 export default function DiagnosesPage() {
+  const { perfilId } = useAuth();
+  const hasInformePermission = perfilId === 3 || perfilId === 4;
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -401,14 +404,16 @@ export default function DiagnosesPage() {
                           Ver informe
                         </Button>
 
-                        <Button
-                          component={Link}
-                          href={`/informes/${diagnosis.id}`}
-                          variant="outlined"
-                          size="small"
-                        >
-                          {diagnosis.hasInforme && diagnosis.informeId ? 'Editar informe' : 'Informar'}
-                        </Button>
+                        {hasInformePermission && (
+                          <Button
+                            component={Link}
+                            href={`/informes/${diagnosis.id}`}
+                            variant="outlined"
+                            size="small"
+                          >
+                            {diagnosis.hasInforme && diagnosis.informeId ? 'Editar informe' : 'Informar'}
+                          </Button>
+                        )}
                         <Button
                           variant="outlined"
                           size="small"

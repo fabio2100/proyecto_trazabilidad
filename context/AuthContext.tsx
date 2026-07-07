@@ -7,6 +7,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAuthLoading: boolean;
   userId: string | null;
+  perfilId: number | null;
   login: (token: string) => void;
   logout: () => Promise<void>;
 }
@@ -17,17 +18,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [perfilId, setPerfilId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/validate', { method: 'GET', credentials: 'include' })
       .then((res) => {
-        if (res.ok) return res.json() as Promise<{ ok: boolean; userId: string }>;
+        if (res.ok) return res.json() as Promise<{ ok: boolean; userId: string; perfilId: number }>;
         return null;
       })
       .then((data) => {
         if (data?.ok && data.userId) {
           setIsAuthenticated(true);
           setUserId(data.userId);
+          setPerfilId(data.perfilId);
         }
       })
       .catch(() => {
@@ -46,11 +49,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     setIsAuthenticated(false);
     setUserId(null);
+    setPerfilId(null);
     await fetch('/api/auth/logout', { method: 'POST' });
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isAuthLoading, userId, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isAuthLoading, userId, perfilId, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

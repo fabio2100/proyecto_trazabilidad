@@ -32,8 +32,11 @@ interface DiagnosisData {
 
 export default function InformesByDiagnosisPage() {
   const diagnosisId = useParams<{ diagnosisId: string }>().diagnosisId || '';
-  const { isAuthenticated, isAuthLoading } = useAuth();
+  const { isAuthenticated, isAuthLoading, perfilId } = useAuth();
   const router = useRouter();
+  
+  // Perfiles: 3 = medico, 4 = superusuario
+  const hasPermission = perfilId === 3 || perfilId === 4;
 
   const [informe, setInforme] = useState('');
   const [savingInforme, setSavingInforme] = useState(false);
@@ -75,6 +78,14 @@ export default function InformesByDiagnosisPage() {
     return (
       <Container maxWidth="sm" sx={{ mt: 6 }}>
         <Alert severity="error">Acceso denegado</Alert>
+      </Container>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 6 }}>
+        <Alert severity="error">Acceso denegado para este usuario</Alert>
       </Container>
     );
   }
