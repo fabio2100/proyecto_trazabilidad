@@ -29,6 +29,7 @@ model Perfiles {
   id    Int     @id
   tipo  String  @unique
   users Users[]
+  functions PerfilesFunctions[]
 }
 
 
@@ -86,4 +87,22 @@ model SharedReportLink {
   createdAt  DateTime @default(now())
 
   informe    Informes @relation(fields: [informeId], references: [id])
+}
+
+model Functions {
+  id       Int                 @id @default(autoincrement())
+  name     String
+  perfiles PerfilesFunctions[]
+}
+
+model PerfilesFunctions {
+  perfil_id  Int
+  function_id Int
+  
+  // Relations
+  perfil  Perfiles  @relation(fields: [perfil_id], references: [id], onDelete: Cascade)
+  function Functions @relation(fields: [function_id], references: [id], onDelete: Cascade)
+
+  // The composite primary key object directive
+  @@id([perfil_id, function_id])
 }

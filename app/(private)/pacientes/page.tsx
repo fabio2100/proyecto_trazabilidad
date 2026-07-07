@@ -407,7 +407,7 @@ export default function DiagnosesPage() {
                           variant="outlined"
                           size="small"
                         >
-                          Editar Informe
+                          {diagnosis.hasInforme && diagnosis.informeId ? 'Editar informe' : 'Informar'}
                         </Button>
                         <Button
                           variant="outlined"
