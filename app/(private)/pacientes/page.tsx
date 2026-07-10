@@ -175,6 +175,7 @@ export default function DiagnosesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           diagnosisId: diagnosis.id,
+          sampleCode: diagnosis.sampleCode,
           qrTargetUrl,
           formData: {
             dni: diagnosis.patientId ?? '',
@@ -345,6 +346,7 @@ export default function DiagnosesPage() {
                       DNI
                     </TableSortLabel>
                   </TableCell>
+                  <TableCell>Código de muestra</TableCell>
                   <TableCell>
                     <TableSortLabel
                       active={orderBy === 'created_at'}
@@ -381,6 +383,8 @@ export default function DiagnosesPage() {
                       )}
                     </TableCell>
                     <TableCell>{diagnosis.patientId}</TableCell>
+                    <TableCell>{diagnosis.sampleCode ?? 'Sin asignar'}</TableCell>
+                    
                     <TableCell>{new Date(diagnosis.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>{diagnosis.hasInforme ? 'Disponible' : 'Pendiente'}</TableCell>
                     <TableCell>

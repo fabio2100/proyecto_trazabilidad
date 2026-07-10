@@ -26,6 +26,11 @@ interface PatientRow {
   telefono: string | null;
 }
 
+interface DiagnosisSequenceRow {
+  lastValue?: number;
+  lastvalue?: number;
+}
+
 export async function POST(request: NextRequest) {
   let body: GuardarPacienteBody;
 
@@ -66,7 +71,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const biopsiasPreviasBool = biopsiasPrevias === 'Si';
+  const biopsiasPreviasBool =
+  biopsiasPrevias
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') === 'si';
 
   const pool = getPool();
   const client = await pool.connect();
@@ -106,13 +116,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Insertar nuevo Diagnosis
+    // 2. Generar código de muestra de forma atómica por año
+    
+    const currentYear = new Date().getFullYear();
+
+    const sequenceResult = await client.query<{ sequenceNumber: number }>(
+      `INSERT INTO "DiagnosisSequence" ("year", "lastValue")
+      VALUES ($1, 1)
+      ON CONFLICT ("year")
+      DO UPDATE
+      SET "lastValue" = "DiagnosisSequence"."lastValue" + 1
+      RETURNING "lastValue" AS "sequenceNumber"`,
+      [currentYear],
+    );
+
+    const sequenceNumber = Number(sequenceResult.rows[0]?.sequenceNumber);
+
+    if (!Number.isInteger(sequenceNumber) || sequenceNumber <= 0) {
+      throw new Error('No se pudo obtener el número secuencial del diagnóstico.');
+    }
+
+    const sampleCode = `LHE-${currentYear}-${String(sequenceNumber).padStart(6, '0')}`;
+   
+
+    // 3. Insertar nuevo Diagnosis
     const diagnosisId = randomUUID();
 
     await client.query(
-      `INSERT INTO "Diagnosis" (id, "patientId", diagnosis, material, "profesionalSolicitante", "biopsasPrevias")
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [diagnosisId, dni, diagnostico ?? '', material, profesionalSolicitante, biopsiasPreviasBool],
+      `INSERT INTO "Diagnosis"
+       (id, "sampleCode", "patientId", diagnosis, material, "profesionalSolicitante", "biopsasPrevias")
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        diagnosisId,
+        sampleCode,
+        dni,
+        diagnostico ?? '',
+        material,
+        profesionalSolicitante,
+        biopsiasPreviasBool,
+      ],
     );
 
     await client.query('COMMIT');
@@ -121,6 +163,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       message: 'Paciente y diagnóstico guardados correctamente.',
       diagnosisId,
+      sampleCode,
     });
   } catch (error) {
     await client.query('ROLLBACK');

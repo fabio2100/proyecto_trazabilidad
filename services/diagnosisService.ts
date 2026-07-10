@@ -12,6 +12,7 @@ export interface DiagnosisRecord {
   patientNombre?: string;
   patientApellido?: string;
   profesionalSolicitante: string;       // Profesional que solicitó
+  sampleCode: string | null;            // Código de muestra asignado al diagnóstico
   hasInforme: boolean;                  // ¿Existe un informe?
   informeId: string | null;             // ID de la tabla Informes (para PDF)
 }

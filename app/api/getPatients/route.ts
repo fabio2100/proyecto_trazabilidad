@@ -14,6 +14,7 @@ interface DiagnosisRow {
   patientNombre: string | null;
   patientApellido: string | null;
   profesionalSolicitante: string;
+  sampleCode: string | null;
   hasInforme: boolean;
   informeId: string | null;
 }
@@ -31,6 +32,7 @@ export async function GET() {
               p.nombre AS "patientNombre",
               p.apellido AS "patientApellido",
               d."profesionalSolicitante",
+              d."sampleCode",
               (i.id IS NOT NULL) AS "hasInforme",
               i.id AS "informeId"
        FROM "Diagnosis" d

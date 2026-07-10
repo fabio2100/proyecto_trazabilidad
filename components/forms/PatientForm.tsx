@@ -400,7 +400,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
           biopsiasPrevias: formData.biopsiasPrevias,
         };
 
-        const { diagnosisId } = await guardarPaciente(payload);
+        const { diagnosisId, sampleCode } = await guardarPaciente(payload);
 
         const qrTargetUrl = `${window.location.origin}/informes?diagnosisId=${encodeURIComponent(
           diagnosisId,
@@ -411,6 +411,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             diagnosisId,
+            sampleCode,
             qrTargetUrl,
             formData: payload,
           }),

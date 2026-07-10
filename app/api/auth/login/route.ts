@@ -39,6 +39,19 @@ export async function POST(request: NextRequest) {
     }
 
     const useEncryption = process.env.PASSWORD_ENCRYPT === '1';
+
+    console.log('[login-debug] email recibido:', email);
+    console.log('[login-debug] user encontrado:', !!user);
+    console.log('[login-debug] user.email:', (user as any).email);
+    console.log('[login-debug] user.validated:', user.validated);
+    console.log('[login-debug] process.env.PASSWORD_ENCRYPT:', process.env.PASSWORD_ENCRYPT);
+    console.log('[login-debug] useEncryption:', useEncryption);
+    console.log('[login-debug] longitud password recibida:', password ? password.length : 0);
+    console.log('[login-debug] longitud user.password:', user.password ? user.password.length : 0);
+    if (!useEncryption) {
+      console.log('[login-debug] comparación plana (password === user.password):', password === user.password);
+    }
+
     const passwordMatch = useEncryption
       ? await bcrypt.compare(password, user.password)
       : password === user.password;

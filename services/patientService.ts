@@ -174,9 +174,10 @@ interface GuardarPacienteResponse {
   ok: boolean;
   message?: string;
   diagnosisId?: string;
+  sampleCode?: string;
 }
 
-export const guardarPaciente = async (data: GuardarPacienteDto): Promise<{ diagnosisId: string }> => {
+export const guardarPaciente = async (data: GuardarPacienteDto): Promise<{ diagnosisId: string; sampleCode: string }> => {
   const response = await fetch('/api/guardar_paciente', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -193,5 +194,9 @@ export const guardarPaciente = async (data: GuardarPacienteDto): Promise<{ diagn
     throw new Error('No se recibió el ID del diagnóstico creado.');
   }
 
-  return { diagnosisId: payload.diagnosisId };
+  if (!payload.sampleCode) {
+    throw new Error('No se recibió el código de muestra del diagnóstico creado.');
+  }
+
+  return { diagnosisId: payload.diagnosisId, sampleCode: payload.sampleCode };
 };

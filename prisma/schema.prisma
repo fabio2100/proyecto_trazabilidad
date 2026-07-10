@@ -54,16 +54,22 @@ model Doctors {
 }
 
 model Diagnosis {
-  id        String   @id @default(uuid())
-  patientId String
-  diagnosis String
-  material String
+  id                      String   @id @default(uuid())
+  sampleCode              String?  @unique
+  patientId               String
+  diagnosis               String
+  material                String
   profesionalSolicitante String
-  biopsasPrevias Boolean
-  createdAt DateTime @default(now())
+  biopsasPrevias          Boolean
+  createdAt               DateTime @default(now())
 
-  patient   Patients  @relation(fields: [patientId], references: [dni])
-  informe   Informes?
+  patient                 Patients  @relation(fields: [patientId], references: [dni])
+  informe                 Informes?
+}
+
+model DiagnosisSequence {
+  year      Int @id
+  lastValue Int @default(0)
 }
 
 model Informes {
