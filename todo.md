@@ -16,3 +16,7 @@
 * Medio: password encrytp
 * Bajo: Fix warning The "middleware" file convention is deprecated. Please use "proxy" instead. 
 * bajo: Agregar fechas informes, agregar ordenar la tabla, paginación
+* Urgente: Ver porqué seed no se ejecutó en la bbdd de producción 
+* Bajo: Ver tiempo de validez de cookie y sesion
+* Bajo: Ruta / dps de login debe direccionar a /dashboard
+* Bajo: Eliminar pacientes, informes, diagnósticos
