@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 
 interface DiagnosisPdfBody {
   diagnosisId: string;
+  sampleCode: string | null;
   qrTargetUrl: string;
   formData: {
     dni: string;
@@ -81,11 +82,11 @@ async function toPdfBuffer(payload: DiagnosisPdfBody): Promise<Buffer> {
   const qrY = (PAGE_H - QR_SIZE) / 2;
   page.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
 
-  const shortCode = `PAT-${(payload.diagnosisId.replace(/-/g, '').slice(0, 8) || '00000000').toUpperCase().padEnd(8, '0')}`;
+  const displayedCode = payload.sampleCode?.trim() ? payload.sampleCode.trim() : 'SIN-CÓDIGO';
 
   const leftContentWidth = LEFT_COL_W - MARGIN * 2;
   const titleText = 'LABORATORIO DE HISTOLOGÍA Y EMBRIOLOGÍA';
-  const subtitleText = shortCode;
+  const subtitleText = displayedCode;
 
   const titleFontSize = fitFontSize(fontBold, titleText, leftContentWidth, 7.2, 5.2);
   const subtitleFontSize = fitFontSize(fontRegular, subtitleText, leftContentWidth, 5.2, 4.0);

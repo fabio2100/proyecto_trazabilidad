@@ -84,6 +84,7 @@ export default function DiagnosesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           diagnosisId: diagnosis.id,
+          sampleCode: diagnosis.sampleCode,
           qrTargetUrl,
           formData: {
             dni: diagnosis.patientId ?? '',
@@ -224,6 +225,7 @@ export default function DiagnosesPage() {
                   <TableCell>Diagnóstico</TableCell>
                   <TableCell>Material</TableCell>
                   <TableCell>Profesional Solicitante</TableCell>
+                  <TableCell>Código de muestra</TableCell>
                   <TableCell>Biopsias Previas</TableCell>
                   <TableCell>Fecha</TableCell>
                   <TableCell>Informe</TableCell>
@@ -248,6 +250,7 @@ export default function DiagnosesPage() {
                     <TableCell>{diagnosis.diagnosis}</TableCell>
                     <TableCell>{diagnosis.material}</TableCell>
                     <TableCell>{diagnosis.profesionalSolicitante}</TableCell>
+                    <TableCell>{diagnosis.sampleCode ?? 'Sin asignar'}</TableCell>
                     <TableCell>{diagnosis.biopsasPrevias ? 'Sí' : 'No'}</TableCell>
                     <TableCell>{new Date(diagnosis.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>{diagnosis.hasInforme ? 'Disponible' : 'Pendiente'}</TableCell>
