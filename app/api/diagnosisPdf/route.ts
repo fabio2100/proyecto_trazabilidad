@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import QRCode from 'qrcode';
-import fs from 'fs';
-import path from 'path';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,75 +36,100 @@ function getBase64FromDataUrl(dataUrl: string): string {
 
 const MM = 72 / 25.4; // points per mm
 
+function fitFontSize(
+  font: { widthOfTextAtSize: (text: string, size: number) => number },
+  text: string,
+  maxWidth: number,
+  baseSize: number,
+  minSize = 3.2,
+): number {
+  let size = baseSize;
+
+  while (size > minSize && font.widthOfTextAtSize(text, size) > maxWidth) {
+    size -= 0.2;
+  }
+
+  return size;
+}
+
 async function toPdfBuffer(payload: DiagnosisPdfBody): Promise<Buffer> {
-  // Layout: 50 x 30 mm (top row 20 mm + bottom row 10 mm)
   const PAGE_W = 50 * MM;
-  const TOP_ROW_H = 20 * MM;
-  const BOT_ROW_H = 10 * MM;
-  const PAGE_H = TOP_ROW_H + BOT_ROW_H;
-  const COL_W = PAGE_W / 2; // 25 mm each column
+  const PAGE_H = 25 * MM;
+  const LEFT_COL_W = 20 * MM;
+  const RIGHT_COL_W = PAGE_W - LEFT_COL_W;
+  const QR_SIZE = 23 * MM;
+  const MARGIN = 2 * MM;
 
   const pdfDoc = await PDFDocument.create();
   pdfDoc.setTitle(`Etiqueta ${payload.diagnosisId}`);
 
   const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const dark = rgb(0.2, 0.2, 0.2);
+  const dark = rgb(0.15, 0.15, 0.15);
 
-  // --- QR code (left column, top row) ---
-  const qrDataUrl = await QRCode.toDataURL(payload.qrTargetUrl, { margin: 0, width: 256 });
+  const qrDataUrl = await QRCode.toDataURL(payload.qrTargetUrl, {
+    margin: 2,
+    width: 512,
+    errorCorrectionLevel: 'M',
+  });
   const qrBase64 = getBase64FromDataUrl(qrDataUrl);
   const qrImage = await pdfDoc.embedPng(Buffer.from(qrBase64, 'base64'));
 
-  const qrSize = Math.min(COL_W, TOP_ROW_H);
-  const qrX = (COL_W - qrSize) / 2;
-  const qrY = BOT_ROW_H + (TOP_ROW_H - qrSize) / 2;
+  const qrX = LEFT_COL_W + (RIGHT_COL_W - QR_SIZE) / 2;
+  const qrY = (PAGE_H - QR_SIZE) / 2;
+  page.drawImage(qrImage, { x: qrX, y: qrY, width: QR_SIZE, height: QR_SIZE });
 
-  page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+  const shortCode = `PAT-${(payload.diagnosisId.replace(/-/g, '').slice(0, 8) || '00000000').toUpperCase().padEnd(8, '0')}`;
 
-  // --- Logo (right column, top row) ---
-  const logoBytes = fs.readFileSync(path.join(process.cwd(), 'public', 'logo.png'));
-  const logoImage = await pdfDoc.embedPng(logoBytes);
+  const leftContentWidth = LEFT_COL_W - MARGIN * 2;
+  const titleText = 'LABORATORIO DE HISTOLOGÍA Y EMBRIOLOGÍA';
+  const subtitleText = shortCode;
 
-  const logoSize = Math.min(COL_W, TOP_ROW_H);
-  const logoX = COL_W + (COL_W - logoSize) / 2;
-  const logoY = BOT_ROW_H + (TOP_ROW_H - logoSize) / 2;
+  const titleFontSize = fitFontSize(fontBold, titleText, leftContentWidth, 7.2, 5.2);
+  const subtitleFontSize = fitFontSize(fontRegular, subtitleText, leftContentWidth, 5.2, 4.0);
 
-  page.drawImage(logoImage, { x: logoX, y: logoY, width: logoSize, height: logoSize });
+  const titleLines = titleText.split(' ');
+  const wrappedTitle: string[] = [];
+  let currentLine = '';
 
-  // --- Patient name (bottom row, single column spanning full width) ---
-  const patientName = `${payload.formData.nombre} ${payload.formData.apellido}`;
-  const fontSize = 7;
-  const textWidth = fontRegular.widthOfTextAtSize(patientName, fontSize);
-  const textX = Math.max(2, (PAGE_W - textWidth) / 2);
-  const textY = (BOT_ROW_H - fontSize) / 2;
+  for (const word of titleLines) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (fontBold.widthOfTextAtSize(testLine, titleFontSize) <= leftContentWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) wrappedTitle.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) wrappedTitle.push(currentLine);
+  if (wrappedTitle.length > 3) {
+    wrappedTitle.length = 3;
+  }
 
-  page.drawText(patientName, {
-    x: textX,
-    y: textY,
-    size: fontSize,
+  let currentY = PAGE_H - MARGIN;
+
+  for (const line of wrappedTitle) {
+    page.drawText(line, {
+      x: MARGIN,
+      y: currentY - titleFontSize,
+      size: titleFontSize,
+      font: fontBold,
+      color: dark,
+      lineHeight: titleFontSize + 1,
+    });
+    currentY -= titleFontSize + 2;
+  }
+
+  currentY -= 2;
+
+  page.drawText(subtitleText, {
+    x: MARGIN,
+    y: currentY - subtitleFontSize,
+    size: subtitleFontSize,
     font: fontRegular,
     color: dark,
-  });
-
-  // --- Grid dividers ---
-  const gridColor = rgb(0.75, 0.75, 0.75);
-
-  // Horizontal line between rows
-  page.drawLine({
-    start: { x: 0, y: BOT_ROW_H },
-    end: { x: PAGE_W, y: BOT_ROW_H },
-    thickness: 0.5,
-    color: gridColor,
-  });
-
-  // Vertical line between columns (top row only)
-  page.drawLine({
-    start: { x: COL_W, y: BOT_ROW_H },
-    end: { x: COL_W, y: PAGE_H },
-    thickness: 0.5,
-    color: gridColor,
   });
 
   const bytes = await pdfDoc.save();
