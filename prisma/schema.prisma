@@ -112,3 +112,10 @@ model PerfilesFunctions {
   // The composite primary key object directive
   @@id([perfil_id, function_id])
 }
+
+model SeedLog {
+  id        Int      @id @default(autoincrement())
+  status    String   // "success" o "error"
+  message   String?
+  executedAt DateTime @default(now())
+}

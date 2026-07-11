@@ -42,10 +42,27 @@ async function main() {
     `, [functionId]);
     console.log("PerfilesFunctions insertadas.");
 
+    // Registrar la ejecución exitosa del seed
+    await client.query(`
+      INSERT INTO "SeedLog" (status, message, "executedAt") VALUES
+        ('success', 'Seed completado exitosamente', NOW())
+    `);
+    console.log("Ejecución registrada en SeedLog.");
+
     await client.query("COMMIT");
     console.log("Seed completado.");
   } catch (e) {
     await client.query("ROLLBACK");
+    // Intentar registrar el error (en conexión nueva si la transacción falló)
+    try {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      await client.query(`
+        INSERT INTO "SeedLog" (status, message, "executedAt") VALUES
+          ('error', $1, NOW())
+      `, [errorMsg]);
+    } catch (logError) {
+      console.error("No se pudo registrar el error en SeedLog:", logError);
+    }
     throw e;
   } finally {
     client.release();
