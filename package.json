@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:seed": "prisma db seed",
+    "build:prod": "prisma generate && prisma migrate deploy && prisma db seed && next build"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
