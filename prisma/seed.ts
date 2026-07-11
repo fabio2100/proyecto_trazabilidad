@@ -23,23 +23,39 @@ async function main() {
     console.log("Perfiles insertados.");
 
     // Functions
-    const fnResult = await client.query(`
-      INSERT INTO "Functions" (id, name) VALUES (1, 'Informar')
-      ON CONFLICT (id) DO NOTHING
-      RETURNING id
-    `);
-    const functionId: number = fnResult.rows.length > 0
-      ? fnResult.rows[0].id
-      : (await client.query(`SELECT id FROM "Functions" WHERE name = 'Informar'`)).rows[0].id;
-    console.log(`Function "Informar" id=${functionId}.`);
-
-    // PerfilesFunctions: medico (3) y superusuario (4) -> Informar
     await client.query(`
+      INSERT INTO "Functions" (id, name) VALUES
+        (1, 'Informar'),
+        (2, 'Notas del tecnico')
+      ON CONFLICT (id) DO NOTHING
+    `);
+
+    const functionsResult = await client.query(`
+      SELECT id, name
+      FROM "Functions"
+      WHERE name IN ('Informar', 'Notas del tecnico')
+    `);
+
+    const informarId = functionsResult.rows.find((r: { id: number; name: string }) => r.name === "Informar")?.id;
+    const notasTecnicoId = functionsResult.rows.find((r: { id: number; name: string }) => r.name === "Notas del tecnico")?.id;
+
+    if (!informarId || !notasTecnicoId) {
+      throw new Error("No se pudieron resolver los IDs de las funciones seed.");
+    }
+
+    console.log(`Function "Informar" id=${informarId}, "Notas del tecnico" id=${notasTecnicoId}.`);
+
+    // PerfilesFunctions: medico (3) y superusuario (4) -> Informar, tecnico (2) -> Notas del tecnico
+    await client.query(
+      `
       INSERT INTO "PerfilesFunctions" (perfil_id, function_id) VALUES
         (3, $1),
-        (4, $1)
+        (4, $1),
+        (2, $2)
       ON CONFLICT DO NOTHING
-    `, [functionId]);
+    `,
+      [informarId, notasTecnicoId],
+    );
     console.log("PerfilesFunctions insertadas.");
 
     // Registrar la ejecución exitosa del seed
@@ -53,13 +69,17 @@ async function main() {
     console.log("Seed completado.");
   } catch (e) {
     await client.query("ROLLBACK");
+
     // Intentar registrar el error (en conexión nueva si la transacción falló)
     try {
       const errorMsg = e instanceof Error ? e.message : String(e);
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO "SeedLog" (status, message, "executedAt") VALUES
           ('error', $1, NOW())
-      `, [errorMsg]);
+      `,
+        [errorMsg],
+      );
     } catch (logError) {
       console.error("No se pudo registrar el error en SeedLog:", logError);
     }
