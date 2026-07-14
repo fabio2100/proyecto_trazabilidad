@@ -421,11 +421,12 @@ export default function DiagnosesPage() {
                         )}
                         {hasNotasTecnicoPermission && (
                           <Button
+                            component={Link}
+                            href={`/notas-tecnico/${diagnosis.id}`}
                             variant="outlined"
                             size="small"
-                            onClick={() => console.log('Agregar nota para diagnosis:', diagnosis.id)}
                           >
-                            Agregar nota del técnico
+                            {diagnosis.hasNotasTecnico ? 'Editar notas del técnico' : 'Agregar notas del técnico'}
                           </Button>
                         )}
                         <Button

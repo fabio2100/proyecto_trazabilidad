@@ -15,6 +15,7 @@ export interface DiagnosisRecord {
   sampleCode: string | null;            // Código de muestra asignado al diagnóstico
   hasInforme: boolean;                  // ¿Existe un informe?
   informeId: string | null;             // ID de la tabla Informes (para PDF)
+  hasNotasTecnico: boolean;             // ¿Existen notas del técnico?
 }
 
 export type Diagnosis = DiagnosisRecord;

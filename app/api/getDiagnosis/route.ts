@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic';
 interface DiagnosisRow {
   id: string;
   patientId: string;
+  patientNombre: string | null;
+  patientApellido: string | null;
   diagnosis: string;
   material: string;
   profesionalSolicitante: string;
@@ -14,6 +16,8 @@ interface DiagnosisRow {
   createdAt: Date;
   informeId: string | null;
   informeCuerpo: string | null;
+  notasTecnicoId: string | null;
+  notasTecnicoCuerpo: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -29,10 +33,15 @@ export async function GET(request: NextRequest) {
   try {
     const pool = getPool();
     const result = await pool.query<DiagnosisRow>(
-      `SELECT d.id, d."patientId", d.diagnosis, d.material, d."profesionalSolicitante", d."biopsasPrevias", d."createdAt",
-              i.id AS "informeId", i.cuerpo AS "informeCuerpo"
+      `SELECT d.id, d."patientId",
+              p.nombre AS "patientNombre", p.apellido AS "patientApellido",
+              d.diagnosis, d.material, d."profesionalSolicitante", d."biopsasPrevias", d."createdAt",
+              i.id AS "informeId", i.cuerpo AS "informeCuerpo",
+              n.id AS "notasTecnicoId", n.cuerpo AS "notasTecnicoCuerpo"
        FROM "Diagnosis" d
+       LEFT JOIN "Patients" p ON d."patientId" = p.dni
        LEFT JOIN "Informes" i ON i."diagnosisId" = d.id
+       LEFT JOIN "NotasDelTecnico" n ON n."diagnosisId" = d.id
        WHERE d.id = $1
        LIMIT 1`,
       [id],

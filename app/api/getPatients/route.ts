@@ -17,6 +17,7 @@ interface DiagnosisRow {
   sampleCode: string | null;
   hasInforme: boolean;
   informeId: string | null;
+  hasNotasTecnico: boolean;
 }
 
 export async function GET() {
@@ -34,10 +35,12 @@ export async function GET() {
               d."profesionalSolicitante",
               d."sampleCode",
               (i.id IS NOT NULL) AS "hasInforme",
-              i.id AS "informeId"
+              i.id AS "informeId",
+              (n.id IS NOT NULL) AS "hasNotasTecnico"
        FROM "Diagnosis" d
        LEFT JOIN "Patients" p ON d."patientId" = p.dni
        LEFT JOIN "Informes" i ON i."diagnosisId" = d.id
+       LEFT JOIN "NotasDelTecnico" n ON n."diagnosisId" = d.id
        ORDER BY d."createdAt" DESC`,
     );
 
