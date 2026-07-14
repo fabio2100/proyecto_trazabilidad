@@ -20,3 +20,4 @@
 * Bajo: Ver tiempo de validez de cookie y sesion
 * Bajo: Ruta / dps de login debe direccionar a /dashboard
 * Bajo: Eliminar pacientes, informes, diagnósticos
+* Urgente: Escaner cuando es tecnico, mostrar editar notas del tecnico
