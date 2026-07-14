@@ -11,6 +11,7 @@ import IconButton from '@mui/material/IconButton';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/hooks/useSidebar';
+import { useAuth } from '@/hooks/useAuth';
 
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BiotechIcon from '@mui/icons-material/Biotech';
@@ -30,6 +31,13 @@ const navItems = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const { perfilId } = useAuth();
+
+  const canCreateDiagnosis = perfilId === 1 || perfilId === 4;
+
+  const visibleNavItems = navItems.filter(
+    (item) => item.href !== '/pacientes/nuevo' || canCreateDiagnosis,
+  );
 
   return (
     <Drawer
@@ -70,7 +78,7 @@ export default function AppSidebar() {
       </Box>
       <Box sx={{ overflowY: 'auto', overflowX: 'hidden' }}>
         <List sx={{ px: 1 }}>
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <ListItemButton

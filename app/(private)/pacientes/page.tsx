@@ -31,6 +31,7 @@ import SearchIcon from '@mui/icons-material/Search';
 export default function DiagnosesPage() {
   const { perfilId } = useAuth();
   const hasInformePermission = perfilId === 3 || perfilId === 4;
+  const hasNotasTecnicoPermission = perfilId === 2 || perfilId === 4;
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -384,7 +385,7 @@ export default function DiagnosesPage() {
                     </TableCell>
                     <TableCell>{diagnosis.patientId}</TableCell>
                     <TableCell>{diagnosis.sampleCode ?? 'Sin asignar'}</TableCell>
-                    
+
                     <TableCell>{new Date(diagnosis.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>{diagnosis.hasInforme ? 'Disponible' : 'Pendiente'}</TableCell>
                     <TableCell>
@@ -416,6 +417,15 @@ export default function DiagnosesPage() {
                             size="small"
                           >
                             {diagnosis.hasInforme && diagnosis.informeId ? 'Editar informe' : 'Informar'}
+                          </Button>
+                        )}
+                        {hasNotasTecnicoPermission && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => console.log('Agregar nota para diagnosis:', diagnosis.id)}
+                          >
+                            Agregar nota del técnico
                           </Button>
                         )}
                         <Button
