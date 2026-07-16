@@ -116,27 +116,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Generar código de muestra de forma atómica por año
-    
-    const currentYear = new Date().getFullYear();
+    // 2. Generar código de muestra de forma atómica por año y mes
+    const BUSINESS_TIME_ZONE = 'America/Argentina/Buenos_Aires';
+
+    const businessDateParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: BUSINESS_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+    }).formatToParts(new Date());
+
+    const currentYear = Number(
+      businessDateParts.find((part) => part.type === 'year')?.value,
+    );
+
+    const currentMonth = Number(
+      businessDateParts.find((part) => part.type === 'month')?.value,
+    );
+
+    if (!Number.isInteger(currentYear) || currentYear <= 0) {
+      throw new Error('No se pudo determinar el año de negocio para el sampleCode.');
+    }
+
+    if (!Number.isInteger(currentMonth) || currentMonth < 1 || currentMonth > 12) {
+      throw new Error('No se pudo determinar el mes de negocio para el sampleCode.');
+    }
+
+    const year = currentYear;
+    const month = currentMonth;
+    const shortYear = String(year).slice(-2);
 
     const sequenceResult = await client.query<{ sequenceNumber: number }>(
-      `INSERT INTO "DiagnosisSequence" ("year", "lastValue")
-      VALUES ($1, 1)
-      ON CONFLICT ("year")
+      `INSERT INTO "DiagnosisSequence" ("year", "month", "lastValue")
+      VALUES ($1, $2, 0)
+      ON CONFLICT ("year", "month")
       DO UPDATE
       SET "lastValue" = "DiagnosisSequence"."lastValue" + 1
       RETURNING "lastValue" AS "sequenceNumber"`,
-      [currentYear],
+      [year, month],
     );
 
     const sequenceNumber = Number(sequenceResult.rows[0]?.sequenceNumber);
 
-    if (!Number.isInteger(sequenceNumber) || sequenceNumber <= 0) {
+    if (!Number.isInteger(sequenceNumber) || sequenceNumber < 0) {
       throw new Error('No se pudo obtener el número secuencial del diagnóstico.');
     }
 
-    const sampleCode = `LHE-${currentYear}-${String(sequenceNumber).padStart(6, '0')}`;
+    const formattedMonth = String(month).padStart(2, '0');
+    const formattedSequence = String(sequenceNumber).padStart(4, '0');
+    const sampleCode = `LHE-${shortYear}-${formattedMonth}-${formattedSequence}`;
    
 
     // 3. Insertar nuevo Diagnosis

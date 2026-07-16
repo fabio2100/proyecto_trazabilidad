@@ -70,8 +70,11 @@ model Diagnosis {
 }
 
 model DiagnosisSequence {
-  year      Int @id
+  year      Int
+  month     Int
   lastValue Int @default(0)
+
+  @@id([year, month])
 }
 
 model Informes {

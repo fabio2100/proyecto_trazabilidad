@@ -21,8 +21,9 @@ export default async function NuevoPaciente() {
   );
 
   const perfilId = result.rows[0]?.perfilId;
+  const canAccessNewDiagnosis = perfilId === 1 || perfilId === 4;
 
-  if (perfilId !== 2 && perfilId !== 4) {
+  if (!canAccessNewDiagnosis) {
     redirect('/pacientes');
   }
 
@@ -33,4 +34,4 @@ export default async function NuevoPaciente() {
       </Box>
     </Container>
   );
-}
+}
