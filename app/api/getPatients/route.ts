@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 interface DiagnosisRow {
   id: string;
   biopsasPrevias: boolean;
+  estudioPrevioFecha: string | null;
   created_at: Date;
   diagnosis: string;
   material: string;
@@ -43,6 +44,7 @@ export async function GET() {
     const result = await pool.query<DiagnosisRow>(
       `SELECT d.id,
               d."biopsasPrevias",
+              TO_CHAR(d."estudioPrevioFecha", 'YYYY-MM-DD') AS "estudioPrevioFecha",
               d."createdAt" AS created_at,
               d.diagnosis,
               d.material,

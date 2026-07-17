@@ -5,12 +5,13 @@
 export interface DiagnosisRecord {
   id: string;                           // ID del Diagnosis
   biopsasPrevias: boolean;              // ¿Hay biopsias previas?
+  estudioPrevioFecha: string | null;    // Fecha del estudio previo, si aplica
   created_at: string;                   // Fecha de creación (ISO string)
   diagnosis: string;                    // Descripción del diagnóstico
   material: string;                     // Material analizado
   patientId: string;                    // DNI del paciente
-  patientNombre?: string;
-  patientApellido?: string;
+  patientNombre: string | null;
+  patientApellido: string | null;
   profesionalSolicitante: string;       // Profesional que solicitó
   sampleCode: string | null;            // Código de muestra asignado al diagnóstico
   hasInforme: boolean;                  // ¿Existe un informe?
@@ -19,6 +20,13 @@ export interface DiagnosisRecord {
 }
 
 export type Diagnosis = DiagnosisRecord;
+
+
+interface GetDiagnosesResponse {
+  ok: boolean;
+  data?: DiagnosisRecord[];
+  message?: string;
+}
 
 const USE_MOCK = false; // Usar backend real
 const STORAGE_KEY = 'patients';
@@ -62,16 +70,22 @@ export const getDiagnoses = async (): Promise<Diagnosis[]> => {
 
   const response = await fetch('/api/getPatients');
 
-  if (!response.ok) {
-    throw new Error('No se pudieron cargar los diagnósticos.');
+  const payload = (await response
+    .json()
+    .catch(() => null)) as GetDiagnosesResponse | null;
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(
+      payload?.message ??
+        `No se pudieron cargar los diagnósticos. HTTP ${response.status}`,
+    );
   }
 
-  const json = await response.json();
-  if (!json.ok) {
-    throw new Error(json.message || 'Error al obtener los diagnósticos.');
+  if (!Array.isArray(payload?.data)) {
+    throw new Error('La respuesta de diagnósticos no tiene un formato válido.');
   }
 
-  return json.data as Diagnosis[];
+  return payload.data;
 };
 
 export const deleteDiagnosis = async (id: string): Promise<void> => {

@@ -62,6 +62,7 @@ model Diagnosis {
   material                String
   profesionalSolicitante String
   biopsasPrevias          Boolean
+  estudioPrevioFecha      DateTime?
   createdAt               DateTime @default(now())
 
   patient                 Patients  @relation(fields: [patientId], references: [dni])

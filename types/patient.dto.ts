@@ -9,6 +9,7 @@ export interface CreatePatientDto {
   profesionalSolicitante: string;
   obraSocialFamas: string;
   biopsiasPrevias: string;
+  estudioPrevioFecha: string;
   diagnostico: string;
 }
 
@@ -33,4 +34,5 @@ export interface GuardarPacienteDto {
   profesionalSolicitante: string;
   obraSocialFamas: string;
   biopsiasPrevias: string;
+  estudioPrevioFecha?: string;
 }

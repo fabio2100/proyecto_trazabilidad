@@ -4,13 +4,15 @@ import {
   PatientDataByDniDto,
 } from '@/types/patient.dto';
 import { Patient } from '@/types/patient';
-// Nota: `createPatient` ahora llama al endpoint real `/api/guardar_paciente`.
 
-// Cambiar a false cuando el endpoint real esté disponible
+/*
+ * Se mantiene en true porque las operaciones de consulta, actualización
+ * y eliminación todavía utilizan localStorage.
+ *
+ * La creación real del diagnóstico se realiza mediante guardarPaciente(),
+ * que llama directamente a /api/guardar_paciente.
+ */
 const USE_MOCK = true;
-
-// Ajustar esta ruta según el endpoint real del backend
-const PATIENTS_ENDPOINT = '/patients';
 
 const STORAGE_KEY = 'patients';
 
@@ -20,7 +22,44 @@ interface GetPatientDataResponse {
   message?: string;
 }
 
+interface CreatePatientResponse {
+  ok: boolean;
+  message?: string;
+}
+
+interface GuardarPacienteResponse {
+  ok: boolean;
+  message?: string;
+  diagnosisId?: string;
+  sampleCode?: string;
+}
+
+interface GuardarPacienteResult {
+  diagnosisId: string;
+  sampleCode: string;
+}
+
 const isBrowser = (): boolean => typeof window !== 'undefined';
+
+const getErrorMessage = (
+  error: unknown,
+  fallbackMessage: string,
+): string => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallbackMessage;
+};
+
+const normalizeEstudioPrevioFecha = (
+  biopsiasPrevias: string,
+  estudioPrevioFecha?: string,
+): string => {
+  return biopsiasPrevias === 'Si'
+    ? estudioPrevioFecha?.trim() ?? ''
+    : '';
+};
 
 const readPatientsFromStorage = (): Patient[] => {
   if (!isBrowser()) {
@@ -28,27 +67,39 @@ const readPatientsFromStorage = (): Patient[] => {
   }
 
   const rawPatients = localStorage.getItem(STORAGE_KEY);
+
   if (!rawPatients) {
     return [];
   }
 
   try {
-    const parsed = JSON.parse(rawPatients) as Patient[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed: unknown = JSON.parse(rawPatients);
+
+    return Array.isArray(parsed)
+      ? (parsed as Patient[])
+      : [];
   } catch {
     return [];
   }
 };
 
-const savePatientsToStorage = (patients: Patient[]): void => {
+const savePatientsToStorage = (
+  patients: Patient[],
+): void => {
   if (!isBrowser()) {
     return;
   }
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(patients),
+  );
 };
 
-const mapCreateDtoToPatient = (id: string, data: CreatePatientDto): Patient => {
+const mapCreateDtoToPatient = (
+  id: string,
+  data: CreatePatientDto,
+): Patient => {
   return {
     id,
     apellido: data.apellido,
@@ -58,145 +109,259 @@ const mapCreateDtoToPatient = (id: string, data: CreatePatientDto): Patient => {
     edad: data.edad,
     dni: data.dni,
     telefono: data.telefono,
-    profesionalSolicitante: data.profesionalSolicitante,
+    profesionalSolicitante:
+      data.profesionalSolicitante,
     obraSocialFamas: data.obraSocialFamas,
     biopsiasPrevias: data.biopsiasPrevias,
+    estudioPrevioFecha:
+      normalizeEstudioPrevioFecha(
+        data.biopsiasPrevias,
+        data.estudioPrevioFecha,
+      ),
     diagnostico: data.diagnostico,
   };
 };
 
-export const createPatient = async (data: CreatePatientDto): Promise<void> => {
+export const createPatient = async (
+  data: CreatePatientDto,
+): Promise<void> => {
+  const normalizedData: CreatePatientDto = {
+    ...data,
+    estudioPrevioFecha:
+      normalizeEstudioPrevioFecha(
+        data.biopsiasPrevias,
+        data.estudioPrevioFecha,
+      ),
+  };
+
   try {
-    const response = await fetch('/api/guardar_paciente', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+    const response = await fetch(
+      '/api/guardar_paciente',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(normalizedData),
+      },
+    );
 
-    let respData: any = null;
-    try {
-      respData = await response.json();
-    } catch {
-      respData = null;
+    const payload = (await response
+      .json()
+      .catch(() => null)) as
+      | CreatePatientResponse
+      | null;
+
+    if (
+      !response.ok ||
+      payload?.ok === false
+    ) {
+      throw new Error(
+        payload?.message ??
+          'No se pudo crear el paciente. Por favor, intentá de nuevo.',
+      );
     }
-
-    if (!response.ok || (respData && respData.ok === false)) {
-      const msg = respData && respData.message ? String(respData.message) : 'No se pudo crear el paciente. Por favor, intentá de nuevo.';
-      throw new Error(msg);
-    }
-
-    return;
-  } catch (err: unknown) {
-    const message = err && typeof err === 'object' && 'message' in err ? (err as any).message : 'No se pudo crear el paciente. Por favor, intentá de nuevo.';
-    throw new Error(message as string);
+  } catch (error: unknown) {
+    throw new Error(
+      getErrorMessage(
+        error,
+        'No se pudo crear el paciente. Por favor, intentá de nuevo.',
+      ),
+    );
   }
 };
 
-export const getPatientById = async (id: string): Promise<Patient | null> => {
+export const getPatientById = async (
+  id: string,
+): Promise<Patient | null> => {
   if (USE_MOCK) {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const patients = readPatientsFromStorage();
-        const patient = patients.find((item) => item.id === id) ?? null;
+        const patients =
+          readPatientsFromStorage();
+
+        const patient =
+          patients.find(
+            (item) => item.id === id,
+          ) ?? null;
+
         resolve(patient);
       }, 150);
     });
   }
 
-  // TODO: Implementar API real (ej: GET /patients/:id)
-  throw new Error('getPatientById no está implementado para modo API real todavía.');
+  throw new Error(
+    'getPatientById no está implementado para modo API real todavía.',
+  );
 };
 
-export const updatePatient = async (id: string, data: CreatePatientDto): Promise<void> => {
+export const updatePatient = async (
+  id: string,
+  data: CreatePatientDto,
+): Promise<void> => {
   if (USE_MOCK) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const patients = readPatientsFromStorage();
-        const index = patients.findIndex((item) => item.id === id);
+        const patients =
+          readPatientsFromStorage();
+
+        const index = patients.findIndex(
+          (item) => item.id === id,
+        );
 
         if (index === -1) {
-          reject(new Error('Paciente no encontrado para actualizar.'));
+          reject(
+            new Error(
+              'Paciente no encontrado para actualizar.',
+            ),
+          );
           return;
         }
 
-        const updatedPatient = mapCreateDtoToPatient(id, data);
+        const updatedPatient =
+          mapCreateDtoToPatient(id, data);
+
         const nextPatients = [...patients];
         nextPatients[index] = updatedPatient;
+
         savePatientsToStorage(nextPatients);
         resolve();
       }, 200);
     });
   }
 
-  // TODO: Implementar API real (ej: PUT /patients/:id)
-  throw new Error('updatePatient no está implementado para modo API real todavía.');
+  throw new Error(
+    'updatePatient no está implementado para modo API real todavía.',
+  );
 };
 
-export const deletePatient = async (id: string): Promise<void> => {
+export const deletePatient = async (
+  id: string,
+): Promise<void> => {
   if (USE_MOCK) {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const patients = readPatientsFromStorage();
-        const nextPatients = patients.filter((item) => item.id !== id);
+        const patients =
+          readPatientsFromStorage();
+
+        const nextPatients = patients.filter(
+          (item) => item.id !== id,
+        );
+
         savePatientsToStorage(nextPatients);
         resolve();
       }, 200);
     });
   }
 
-  // TODO: Implementar API real (ej: DELETE /patients/:id)
-  throw new Error('deletePatient no está implementado para modo API real todavía.');
+  throw new Error(
+    'deletePatient no está implementado para modo API real todavía.',
+  );
 };
 
-export const getPatientDataByDni = async (dni: string): Promise<PatientDataByDniDto | null> => {
-  const response = await fetch(`/api/getPatientData?dni=${encodeURIComponent(dni)}`);
+export const getPatientDataByDni = async (
+  dni: string,
+): Promise<PatientDataByDniDto | null> => {
+  const response = await fetch(
+    `/api/getPatientData?dni=${encodeURIComponent(dni)}`,
+  );
 
-  if (!response.ok) {
-    throw new Error('No se pudo consultar el paciente por DNI.');
+  const payload = (await response
+    .json()
+    .catch(() => null)) as
+    | GetPatientDataResponse
+    | null;
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(
+      payload?.message ??
+        'No se pudo consultar el paciente por DNI.',
+    );
   }
 
-  const data = (await response.json()) as GetPatientDataResponse;
-  return data.patient;
+  return payload?.patient ?? null;
 };
 
-export const getPatientDataByEmail = async (email: string): Promise<PatientDataByDniDto | null> => {
-  const response = await fetch(`/api/getPatientData?email=${encodeURIComponent(email)}`);
+export const getPatientDataByEmail = async (
+  email: string,
+): Promise<PatientDataByDniDto | null> => {
+  const response = await fetch(
+    `/api/getPatientData?email=${encodeURIComponent(email)}`,
+  );
 
-  if (!response.ok) {
-    throw new Error('No se pudo consultar el paciente por email.');
+  const payload = (await response
+    .json()
+    .catch(() => null)) as
+    | GetPatientDataResponse
+    | null;
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(
+      payload?.message ??
+        'No se pudo consultar el paciente por email.',
+    );
   }
 
-  const data = (await response.json()) as GetPatientDataResponse;
-  return data.patient;
+  return payload?.patient ?? null;
 };
 
-interface GuardarPacienteResponse {
-  ok: boolean;
-  message?: string;
-  diagnosisId?: string;
-  sampleCode?: string;
-}
+export const guardarPaciente = async (
+  data: GuardarPacienteDto,
+): Promise<GuardarPacienteResult> => {
+  /*
+   * Aunque el formulario ya limpia la fecha al seleccionar "No",
+   * el servicio vuelve a normalizarla para no enviar datos residuales.
+   */
+  const normalizedData: GuardarPacienteDto = {
+    ...data,
+    estudioPrevioFecha:
+      normalizeEstudioPrevioFecha(
+        data.biopsiasPrevias,
+        data.estudioPrevioFecha,
+      ),
+  };
 
-export const guardarPaciente = async (data: GuardarPacienteDto): Promise<{ diagnosisId: string; sampleCode: string }> => {
-  const response = await fetch('/api/guardar_paciente', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
+  const response = await fetch(
+    '/api/guardar_paciente',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(normalizedData),
+    },
+  );
 
-  const payload = (await response.json().catch(() => ({}))) as GuardarPacienteResponse;
+  const payload = (await response
+    .json()
+    .catch(() => null)) as
+    | GuardarPacienteResponse
+    | null;
 
-  if (!response.ok) {
-    throw new Error(payload.message ?? 'No se pudo guardar el paciente.');
+  if (
+    !response.ok ||
+    payload?.ok === false
+  ) {
+    throw new Error(
+      payload?.message ??
+        'No se pudo guardar el paciente.',
+    );
   }
 
-  if (!payload.diagnosisId) {
-    throw new Error('No se recibió el ID del diagnóstico creado.');
+  if (!payload?.diagnosisId) {
+    throw new Error(
+      'No se recibió el ID del diagnóstico creado.',
+    );
   }
 
   if (!payload.sampleCode) {
-    throw new Error('No se recibió el código de muestra del diagnóstico creado.');
+    throw new Error(
+      'No se recibió el código de muestra del diagnóstico creado.',
+    );
   }
 
-  return { diagnosisId: payload.diagnosisId, sampleCode: payload.sampleCode };
+  return {
+    diagnosisId: payload.diagnosisId,
+    sampleCode: payload.sampleCode,
+  };
 };

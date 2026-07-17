@@ -19,6 +19,7 @@ const mapPatientToFormData = (patient: Patient): PatientFormData => {
     profesionalSolicitante: patient.profesionalSolicitante,
     obraSocialFamas: patient.obraSocialFamas,
     biopsiasPrevias: patient.biopsiasPrevias,
+    estudioPrevioFecha: patient.estudioPrevioFecha ?? '',
     diagnostico: patient.diagnostico,
   };
 };

@@ -39,14 +39,66 @@ export default function DiagnosesPage() {
   const [etiquetaLoadingId, setEtiquetaLoadingId] = useState<string | null>(null);
 
   // Estados para ordenación y búsqueda
-  const [orderBy, setOrderBy] = useState<keyof Diagnosis | 'paciente'>('created_at');
+  type SortProperty = keyof Diagnosis | 'paciente' | 'fecha';
+
+  const [orderBy, setOrderBy] = useState<SortProperty>('fecha');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  const handleRequestSort = (property: keyof Diagnosis | 'paciente') => {
+  const handleRequestSort = (property: SortProperty) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
+  };
+
+
+  /**
+   * Devuelve la fecha que debe representar al diagnóstico:
+   * - estudio previo: fecha histórica ingresada por el usuario;
+   * - estudio nuevo: fecha real de creación del registro.
+   */
+  const getDiagnosisDisplayDate = (diagnosis: Diagnosis): string => {
+    if (diagnosis.biopsasPrevias && diagnosis.estudioPrevioFecha) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(
+        diagnosis.estudioPrevioFecha,
+      );
+
+      if (match) {
+        return `${match[3]}/${match[2]}/${match[1]}`;
+      }
+    }
+
+    const createdAt = new Date(diagnosis.created_at);
+
+    if (Number.isNaN(createdAt.getTime())) {
+      return 'Fecha no disponible';
+    }
+
+    return createdAt.toLocaleDateString('es-AR');
+  };
+
+  /**
+   * Devuelve un valor numérico estable para ordenar por la fecha mostrada.
+   * Las fechas YYYY-MM-DD se interpretan como fechas calendario y no como UTC
+   * local, evitando desplazamientos de un día en el navegador.
+   */
+  const getDiagnosisDateSortValue = (diagnosis: Diagnosis): number => {
+    if (diagnosis.biopsasPrevias && diagnosis.estudioPrevioFecha) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(
+        diagnosis.estudioPrevioFecha,
+      );
+
+      if (match) {
+        return Date.UTC(
+          Number(match[1]),
+          Number(match[2]) - 1,
+          Number(match[3]),
+        );
+      }
+    }
+
+    const createdAtTimestamp = new Date(diagnosis.created_at).getTime();
+    return Number.isNaN(createdAtTimestamp) ? 0 : createdAtTimestamp;
   };
 
   const filteredDiagnoses = useMemo(() => {
@@ -73,8 +125,9 @@ export default function DiagnosesPage() {
       // Check profesionalSolicitante
       if (d.profesionalSolicitante?.toLowerCase().includes(term)) return true;
 
-      // Check fecha
-      const dateStr = new Date(d.created_at).toLocaleDateString().toLowerCase();
+      // Check fecha efectiva: histórica si es estudio previo,
+      // o fecha de carga si es un estudio nuevo.
+      const dateStr = getDiagnosisDisplayDate(d).toLowerCase();
       if (dateStr.includes(term)) return true;
 
       // Check informe
@@ -95,9 +148,9 @@ export default function DiagnosesPage() {
         const bName = `${b.patientApellido || ''}, ${b.patientNombre || ''}`.toLowerCase();
         aVal = aName;
         bVal = bName;
-      } else if (orderBy === 'created_at') {
-        aVal = new Date(a.created_at).getTime();
-        bVal = new Date(b.created_at).getTime();
+      } else if (orderBy === 'fecha') {
+        aVal = getDiagnosisDateSortValue(a);
+        bVal = getDiagnosisDateSortValue(b);
       } else {
         aVal = a[orderBy];
         bVal = b[orderBy];
@@ -189,6 +242,7 @@ export default function DiagnosesPage() {
             profesionalSolicitante: diagnosis.profesionalSolicitante ?? '',
             obraSocialFamas: '',
             biopsiasPrevias: diagnosis.biopsasPrevias ? 'Sí' : 'No',
+            estudioPrevioFecha: diagnosis.estudioPrevioFecha ?? '',
             diagnostico: diagnosis.diagnosis ?? '',
           },
         }),
@@ -350,9 +404,9 @@ export default function DiagnosesPage() {
                   <TableCell>Código de muestra</TableCell>
                   <TableCell>
                     <TableSortLabel
-                      active={orderBy === 'created_at'}
-                      direction={orderBy === 'created_at' ? order : 'asc'}
-                      onClick={() => handleRequestSort('created_at')}
+                      active={orderBy === 'fecha'}
+                      direction={orderBy === 'fecha' ? order : 'asc'}
+                      onClick={() => handleRequestSort('fecha')}
                     >
                       Fecha
                     </TableSortLabel>
@@ -386,7 +440,7 @@ export default function DiagnosesPage() {
                     <TableCell>{diagnosis.patientId}</TableCell>
                     <TableCell>{diagnosis.sampleCode ?? 'Sin asignar'}</TableCell>
 
-                    <TableCell>{new Date(diagnosis.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{getDiagnosisDisplayDate(diagnosis)}</TableCell>
                     <TableCell>{diagnosis.hasInforme ? 'Disponible' : 'Pendiente'}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>

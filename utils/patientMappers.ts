@@ -1,7 +1,9 @@
 import { PatientFormData } from '@/types/patient';
 import { CreatePatientDto } from '@/types/patient.dto';
 
-export const mapPatientFormDataToCreateDto = (data: PatientFormData): CreatePatientDto => {
+export const mapPatientFormDataToCreateDto = (
+  data: PatientFormData,
+): CreatePatientDto => {
   return {
     apellido: data.apellido,
     nombre: data.nombre,
@@ -13,6 +15,10 @@ export const mapPatientFormDataToCreateDto = (data: PatientFormData): CreatePati
     profesionalSolicitante: data.profesionalSolicitante,
     obraSocialFamas: data.obraSocialFamas,
     biopsiasPrevias: data.biopsiasPrevias,
+    estudioPrevioFecha:
+      data.biopsiasPrevias === 'Si'
+        ? data.estudioPrevioFecha
+        : '',
     diagnostico: data.diagnostico,
   };
 };

@@ -13,6 +13,7 @@ export const patients: Patient[] = [
     profesionalSolicitante: 'Dr. López',
     obraSocialFamas: 'OSDE',
     biopsiasPrevias: 'No',
+    estudioPrevioFecha: '',
     diagnostico: 'Hepatitis crónica',
   },
   {
@@ -27,6 +28,7 @@ export const patients: Patient[] = [
     profesionalSolicitante: 'Dra. Silva',
     obraSocialFamas: 'PAMI',
     biopsiasPrevias: 'Sí',
+    estudioPrevioFecha: '2026-07-01',
     diagnostico: 'Insuficiencia renal',
   },
 ];

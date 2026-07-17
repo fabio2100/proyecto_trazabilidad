@@ -10,6 +10,7 @@ export interface Patient {
   profesionalSolicitante: string;
   obraSocialFamas: string;
   biopsiasPrevias: string;
+  estudioPrevioFecha: string;
   diagnostico: string;
 }
 
@@ -24,6 +25,7 @@ export interface PatientFormData {
   profesionalSolicitante: string;
   obraSocialFamas: string;
   biopsiasPrevias: string;
+  estudioPrevioFecha: string;
   diagnostico: string;
 }
 
@@ -38,5 +40,6 @@ export const initialPatientFormData: PatientFormData = {
   profesionalSolicitante: '',
   obraSocialFamas: '',
   biopsiasPrevias: '',
+  estudioPrevioFecha: '',
   diagnostico: '',
 };

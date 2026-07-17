@@ -18,7 +18,12 @@ import {
 } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import EditIcon from '@mui/icons-material/Edit';
-import { PatientFormData, initialPatientFormData } from '@/types/patient';
+
+import {
+  PatientFormData,
+  initialPatientFormData,
+} from '@/types/patient';
+
 import {
   validateTextField,
   validateEdad,
@@ -26,13 +31,17 @@ import {
   validateTelefono,
   validateSelect,
 } from '@/utils/validations';
+
 import { mapPatientFormDataToCreateDto } from '@/utils/patientMappers';
+
 import {
   getPatientDataByDni,
   getPatientDataByEmail,
   guardarPaciente,
   updatePatient,
 } from '@/services/patientService';
+
+const BUSINESS_TIME_ZONE = 'America/Argentina/Buenos_Aires';
 
 type ValidatableFieldName = keyof PatientFormData;
 
@@ -47,6 +56,7 @@ interface FormErrors {
   profesionalSolicitante?: string;
   obraSocialFamas?: string;
   biopsiasPrevias?: string;
+  estudioPrevioFecha?: string;
   diagnostico?: string;
 }
 
@@ -61,6 +71,7 @@ interface FormTouched {
   profesionalSolicitante?: boolean;
   obraSocialFamas?: boolean;
   biopsiasPrevias?: boolean;
+  estudioPrevioFecha?: boolean;
   diagnostico?: boolean;
 }
 
@@ -70,10 +81,96 @@ interface PatientFormProps {
   patientId?: string;
 }
 
-export default function PatientForm({ initialData, mode = 'create', patientId }: PatientFormProps) {
-  const resolvedInitialData = mode === 'edit' && initialData ? initialData : initialPatientFormData;
+/**
+ * Obtiene una fecha calendario según la zona horaria de Argentina.
+ *
+ * Devuelve el valor en formato YYYY-MM-DD, compatible con inputs type="date".
+ */
+function getArgentinaDateString(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: BUSINESS_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
 
-  const [formData, setFormData] = useState<PatientFormData>(resolvedInitialData);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  if (!year || !month || !day) {
+    throw new Error('No se pudo determinar la fecha actual.');
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Obtiene el día anterior a la fecha actual de Argentina.
+ *
+ * Esta fecha se usa como límite máximo del calendario, porque el estudio
+ * previo no puede corresponder al día actual ni a una fecha futura.
+ */
+function getYesterdayArgentinaDateString(): string {
+  const todayArgentina = getArgentinaDateString();
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(todayArgentina);
+
+  if (!match) {
+    throw new Error('No se pudo interpretar la fecha actual.');
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  const yesterday = new Date(Date.UTC(year, month - 1, day - 1));
+
+  return [
+    yesterday.getUTCFullYear(),
+    String(yesterday.getUTCMonth() + 1).padStart(2, '0'),
+    String(yesterday.getUTCDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+/**
+ * Comprueba que una cadena YYYY-MM-DD represente una fecha real.
+ *
+ * Evita aceptar fechas inexistentes como 2026-02-31.
+ */
+function isValidCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return false;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  const parsedDate = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    parsedDate.getUTCFullYear() === year &&
+    parsedDate.getUTCMonth() === month - 1 &&
+    parsedDate.getUTCDate() === day
+  );
+}
+
+export default function PatientForm({
+  initialData,
+  mode = 'create',
+  patientId,
+}: PatientFormProps) {
+  const resolvedInitialData =
+    mode === 'edit' && initialData
+      ? initialData
+      : initialPatientFormData;
+
+  const [formData, setFormData] =
+    useState<PatientFormData>(resolvedInitialData);
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<FormTouched>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -81,8 +178,17 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [patientFound, setPatientFound] = useState<boolean>(false);
-  const [patientEditable, setPatientEditable] = useState<boolean>(false);
+  const [patientEditable, setPatientEditable] =
+    useState<boolean>(false);
+
   const isFormLocked = patientFound && !patientEditable;
+
+  /*
+   * La fecha máxima que podrá elegirse en el calendario es ayer,
+   * calculada según la zona horaria de Argentina.
+   */
+  const maxPreviousStudyDate =
+    getYesterdayArgentinaDateString();
 
   useEffect(() => {
     setFormData(resolvedInitialData);
@@ -95,13 +201,15 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     setPatientEditable(false);
   }, [resolvedInitialData]);
 
-  const fetchPatientDataByDni = async (dni: string): Promise<void> => {
+  const fetchPatientDataByDni = async (
+    dni: string,
+  ): Promise<void> => {
     try {
       const patientData = await getPatientDataByDni(dni);
 
       if (!patientData) {
-          setPatientFound(false);
-          setPatientEditable(false);
+        setPatientFound(false);
+        setPatientEditable(false);
         setEmail('');
         return;
       }
@@ -127,16 +235,21 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
       setPatientFound(true);
       setPatientEditable(false);
     } catch {
-        setPatientFound(false);
-        setPatientEditable(false);
+      setPatientFound(false);
+      setPatientEditable(false);
       setEmail('');
-      setErrorMessage('No se pudieron obtener los datos del paciente por DNI.');
+      setErrorMessage(
+        'No se pudieron obtener los datos del paciente por DNI.',
+      );
     }
   };
 
-  const fetchPatientDataByEmail = async (emailToSearch: string): Promise<void> => {
+  const fetchPatientDataByEmail = async (
+    emailToSearch: string,
+  ): Promise<void> => {
     try {
-      const patientData = await getPatientDataByEmail(emailToSearch);
+      const patientData =
+        await getPatientDataByEmail(emailToSearch);
 
       if (!patientData) {
         setPatientFound(false);
@@ -168,55 +281,110 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     } catch {
       setPatientFound(false);
       setPatientEditable(false);
-      setErrorMessage('No se pudieron obtener los datos del paciente por email.');
+      setErrorMessage(
+        'No se pudieron obtener los datos del paciente por email.',
+      );
     }
   };
 
-  const validateField = (fieldName: ValidatableFieldName, value: string): string => {
+  const validateField = (
+    fieldName: ValidatableFieldName,
+    value: string,
+  ): string => {
     let error = '';
 
     switch (fieldName) {
       case 'email':
         break;
+
       case 'apellido':
         error = validateTextField(value, 'Apellido');
         break;
+
       case 'nombre':
         error = validateTextField(value, 'Nombre');
         break;
+
       case 'material':
         error = validateTextField(value, 'Material');
         break;
+
       case 'edad':
         error = validateEdad(value);
         break;
+
       case 'dni':
         error = validateDni(value);
         break;
+
       case 'telefono':
         error = validateTelefono(value);
         break;
+
       case 'profesionalSolicitante':
-        error = validateTextField(value, 'Profesional Solicitante');
+        error = validateTextField(
+          value,
+          'Profesional Solicitante',
+        );
         break;
+
       case 'obraSocialFamas':
-        error = validateTextField(value, 'Obra Social FAMAS');
+        error = validateTextField(
+          value,
+          'Obra Social FAMAS',
+        );
         break;
+
       case 'biopsiasPrevias':
-        error = validateSelect(value, 'Biopsias Previas');
+        error = validateSelect(value, '¿Estudio previo?');
         break;
+
+      case 'estudioPrevioFecha':
+        error = '';
+        break;
+
       case 'diagnostico':
-        // El diagnóstico es opcional, no validar
+        // El diagnóstico es opcional.
         break;
-      default:
+
+      default: {
         const exhaustiveCheck: never = fieldName;
         return exhaustiveCheck;
+      }
     }
 
     return error;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const validateStudyPreviousDate = (
+    value: string,
+  ): string => {
+    if (!value) {
+      return 'Debe seleccionar la fecha del estudio previo.';
+    }
+
+    if (!isValidCalendarDate(value)) {
+      return 'La fecha del estudio previo no es válida.';
+    }
+
+    const todayArgentina = getArgentinaDateString();
+
+    /*
+     * Las fechas YYYY-MM-DD pueden compararse lexicográficamente
+     * porque mantienen el orden cronológico.
+     */
+    if (value >= todayArgentina) {
+      return 'La fecha del estudio previo debe ser anterior a la fecha actual.';
+    }
+
+    return '';
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement
+    >,
+  ) => {
     const { name, value } = e.target;
     const fieldName = name as ValidatableFieldName;
 
@@ -226,6 +394,7 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     }));
 
     const fieldError = validateField(fieldName, value);
+
     setErrors((prev) => ({
       ...prev,
       [fieldName]: fieldError,
@@ -243,35 +412,81 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     }
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmailChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const value = e.target.value;
+
     setEmail(value);
     setPatientFound(false);
     setPatientEditable(false);
   };
 
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
+  const handleSelectChange = (
+    e: SelectChangeEvent<string>,
+  ) => {
     const { name, value } = e.target;
     const fieldName = name as ValidatableFieldName;
+
+    const shouldClearPreviousStudyDate =
+      fieldName === 'biopsiasPrevias' && value !== 'Si';
 
     setFormData((prev) => ({
       ...prev,
       [fieldName]: value,
+      ...(shouldClearPreviousStudyDate
+        ? { estudioPrevioFecha: '' }
+        : {}),
     }));
 
     const fieldError = validateField(fieldName, value);
+
     setErrors((prev) => ({
       ...prev,
       [fieldName]: fieldError,
+      ...(shouldClearPreviousStudyDate
+        ? { estudioPrevioFecha: '' }
+        : {}),
     }));
 
     setTouched((prev) => ({
       ...prev,
       [fieldName]: true,
+      ...(shouldClearPreviousStudyDate
+        ? { estudioPrevioFecha: false }
+        : {}),
     }));
   };
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleDateChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const value = e.target.value;
+
+    setFormData((prev) => ({
+      ...prev,
+      estudioPrevioFecha: value,
+    }));
+
+    const fieldError =
+      validateStudyPreviousDate(value);
+
+    setErrors((prev) => ({
+      ...prev,
+      estudioPrevioFecha: fieldError,
+    }));
+
+    setTouched((prev) => ({
+      ...prev,
+      estudioPrevioFecha: true,
+    }));
+  };
+
+  const handleBlur = (
+    e: React.FocusEvent<
+      HTMLInputElement | HTMLTextAreaElement
+    >,
+  ) => {
     const { name, value } = e.target;
     const fieldName = name as ValidatableFieldName;
 
@@ -296,17 +511,24 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     void fetchPatientDataByDni(dniValue);
   };
 
-  const handleEmailBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleEmailBlur = (
+    e: React.FocusEvent<
+      HTMLInputElement | HTMLTextAreaElement
+    >,
+  ) => {
     if (mode !== 'create') {
       return;
     }
 
     const emailValue = e.target.value.trim();
+
     if (!emailValue) {
       return;
     }
 
-    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+    const isValidEmail =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+
     if (!isValidEmail) {
       return;
     }
@@ -328,24 +550,54 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   ];
 
   const hasValidationErrors = (): boolean => {
-    return Object.values(errors).some((error) => error !== '');
+    return Object.values(errors).some(
+      (error) => error !== '',
+    );
   };
 
   const hasMissingRequiredFields = (): boolean => {
-    return requiredFields.some((fieldName) => !formData[fieldName]?.trim());
+    const missingRequired = requiredFields.some(
+      (fieldName) => !formData[fieldName]?.trim(),
+    );
+
+    if (formData.biopsiasPrevias === 'Si') {
+      return (
+        missingRequired ||
+        !formData.estudioPrevioFecha?.trim()
+      );
+    }
+
+    return missingRequired;
   };
 
   const isFormValid = (): boolean => {
-    return !hasValidationErrors() && !hasMissingRequiredFields();
+    if (formData.biopsiasPrevias === 'Si') {
+      return (
+        !hasValidationErrors() &&
+        !hasMissingRequiredFields() &&
+        !validateStudyPreviousDate(
+          formData.estudioPrevioFecha,
+        )
+      );
+    }
+
+    return (
+      !hasValidationErrors() &&
+      !hasMissingRequiredFields()
+    );
   };
 
-  const showError = (fieldName: ValidatableFieldName): boolean => {
-    return !!(touched[fieldName] && errors[fieldName]);
+  const showError = (
+    fieldName: ValidatableFieldName,
+  ): boolean => {
+    return Boolean(
+      touched[fieldName] && errors[fieldName],
+    );
   };
 
   const handleCancel = () => {
-      setPatientFound(false);
-      setPatientEditable(false);
+    setPatientFound(false);
+    setPatientEditable(false);
     setFormData(resolvedInitialData);
     setErrors({});
     setTouched({});
@@ -354,17 +606,24 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     setEmail('');
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
 
-    // Marcar todos los campos como tocados para mostrar errores
-    const allTouched: FormTouched = requiredFields.reduce(
-      (acc, fieldName) => ({
-        ...acc,
-        [fieldName]: true,
-      }),
-      {}
-    );
+    const allTouched: FormTouched =
+      requiredFields.reduce(
+        (acc, fieldName) => ({
+          ...acc,
+          [fieldName]: true,
+        }),
+        {},
+      );
+
+    if (formData.biopsiasPrevias === 'Si') {
+      allTouched.estudioPrevioFecha = true;
+    }
+
     setTouched(allTouched);
 
     if (!isFormValid()) {
@@ -376,15 +635,21 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
     setIsSubmitting(true);
 
     try {
-      const dto = mapPatientFormDataToCreateDto(formData);
+      const dto =
+        mapPatientFormDataToCreateDto(formData);
 
       if (mode === 'edit') {
         if (!patientId) {
-          throw new Error('No se pudo actualizar: falta el identificador del paciente.');
+          throw new Error(
+            'No se pudo actualizar: falta el identificador del paciente.',
+          );
         }
 
         await updatePatient(patientId, dto);
-        setSuccessMessage('Paciente actualizado correctamente.');
+
+        setSuccessMessage(
+          'Paciente actualizado correctamente.',
+        );
       } else {
         const payload = {
           dni: formData.dni,
@@ -395,36 +660,65 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
           telefono: formData.telefono,
           diagnostico: formData.diagnostico,
           material: formData.material,
-          profesionalSolicitante: formData.profesionalSolicitante,
-          obraSocialFamas: formData.obraSocialFamas,
-          biopsiasPrevias: formData.biopsiasPrevias,
+          profesionalSolicitante:
+            formData.profesionalSolicitante,
+          obraSocialFamas:
+            formData.obraSocialFamas,
+          biopsiasPrevias:
+            formData.biopsiasPrevias,
+
+          /*
+           * La fecha solamente se envía cuando se indicó que existe
+           * un estudio previo.
+           */
+          estudioPrevioFecha:
+            formData.biopsiasPrevias === 'Si'
+              ? formData.estudioPrevioFecha
+              : '',
         };
 
-        const { diagnosisId, sampleCode } = await guardarPaciente(payload);
+        const { diagnosisId, sampleCode } =
+          await guardarPaciente(payload);
 
-        const qrTargetUrl = `${window.location.origin}/informes?diagnosisId=${encodeURIComponent(
-          diagnosisId,
-        )}`;
+        const qrTargetUrl =
+          `${window.location.origin}/informes` +
+          `?diagnosisId=${encodeURIComponent(diagnosisId)}`;
 
-        const pdfResponse = await fetch('/api/diagnosisPdf', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            diagnosisId,
-            sampleCode,
-            qrTargetUrl,
-            formData: payload,
-          }),
-        });
+        const pdfResponse = await fetch(
+          '/api/diagnosisPdf',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              diagnosisId,
+              sampleCode,
+              qrTargetUrl,
+              formData: payload,
+            }),
+          },
+        );
 
         if (!pdfResponse.ok) {
-          throw new Error('Diagnóstico guardado, pero no se pudo generar el PDF.');
+          throw new Error(
+            'Diagnóstico guardado, pero no se pudo generar el PDF.',
+          );
         }
 
         const pdfBlob = await pdfResponse.blob();
         const pdfUrl = URL.createObjectURL(pdfBlob);
-        window.open(pdfUrl, '_blank', 'noopener,noreferrer');
-        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+
+        window.open(
+          pdfUrl,
+          '_blank',
+          'noopener,noreferrer',
+        );
+
+        setTimeout(
+          () => URL.revokeObjectURL(pdfUrl),
+          60_000,
+        );
 
         setFormData(initialPatientFormData);
         setPatientFound(false);
@@ -432,10 +726,17 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
         setErrors({});
         setTouched({});
         setEmail('');
-        setSuccessMessage('Diagnóstico guardado y PDF generado correctamente.');
+
+        setSuccessMessage(
+          'Diagnóstico guardado y PDF generado correctamente.',
+        );
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ocurrió un error al guardar el paciente.';
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error al guardar el paciente.';
+
       setErrorMessage(message);
     } finally {
       setIsSubmitting(false);
@@ -443,10 +744,21 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} noValidate>
+    <Box
+      component="form"
+      onSubmit={handleSubmit}
+      noValidate
+    >
       <Paper elevation={2} sx={{ p: 3 }}>
-        <Typography variant="h2" component="h2" gutterBottom sx={{ mb: 3 }}>
-          {mode === 'edit' ? 'Editar Diagnóstico' : 'Nuevo Diagnóstico'}
+        <Typography
+          variant="h2"
+          component="h2"
+          gutterBottom
+          sx={{ mb: 3 }}
+        >
+          {mode === 'edit'
+            ? 'Editar Diagnóstico'
+            : 'Nuevo Diagnóstico'}
         </Typography>
 
         {successMessage && (
@@ -470,32 +782,43 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
             borderRadius: 1,
             p: 2,
             mb: 3,
-                      position: 'relative',
+            position: 'relative',
           }}
         >
-          <Box component="legend" sx={{ px: 1, fontWeight: 'bold' }}>
+          <Box
+            component="legend"
+            sx={{ px: 1, fontWeight: 'bold' }}
+          >
             Información del paciente
           </Box>
-                    {patientFound && !patientEditable && (
-                      <Tooltip title="Editar datos del paciente">
-                        <Fab
-                          size="small"
-                          color="primary"
-                          onClick={() => setPatientEditable(true)}
-                          sx={{ position: 'absolute', top: 8, right: 8 }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </Fab>
-                      </Tooltip>
-                    )}
+
+          {patientFound && !patientEditable && (
+            <Tooltip title="Editar datos del paciente">
+              <Fab
+                size="small"
+                color="primary"
+                onClick={() => setPatientEditable(true)}
+                sx={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                }}
+              >
+                <EditIcon fontSize="small" />
+              </Fab>
+            </Tooltip>
+          )}
+
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: '1fr 1fr',
+              },
               gap: 2,
             }}
           >
-            {/* DNI */}
             <Box>
               <TextField
                 fullWidth
@@ -507,12 +830,13 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 onBlur={handleBlur}
                 placeholder="Número de DNI"
                 error={showError('dni')}
-                helperText={showError('dni') ? errors.dni : ''}
+                helperText={
+                  showError('dni') ? errors.dni : ''
+                }
                 disabled={isFormLocked}
               />
             </Box>
 
-            {/* Email */}
             <Box>
               <TextField
                 fullWidth
@@ -527,7 +851,6 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
               />
             </Box>
 
-            {/* Apellido */}
             <Box>
               <TextField
                 fullWidth
@@ -538,12 +861,15 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 onBlur={handleBlur}
                 placeholder="Ingrese apellido del paciente"
                 error={showError('apellido')}
-                helperText={showError('apellido') ? errors.apellido : ''}
+                helperText={
+                  showError('apellido')
+                    ? errors.apellido
+                    : ''
+                }
                 disabled={isFormLocked}
               />
             </Box>
 
-            {/* Nombre */}
             <Box>
               <TextField
                 fullWidth
@@ -554,12 +880,15 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 onBlur={handleBlur}
                 placeholder="Ingrese nombre del paciente"
                 error={showError('nombre')}
-                helperText={showError('nombre') ? errors.nombre : ''}
+                helperText={
+                  showError('nombre')
+                    ? errors.nombre
+                    : ''
+                }
                 disabled={isFormLocked}
               />
             </Box>
 
-            {/* Teléfono */}
             <Box>
               <TextField
                 fullWidth
@@ -571,12 +900,15 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 onBlur={handleBlur}
                 placeholder="Número de teléfono"
                 error={showError('telefono')}
-                helperText={showError('telefono') ? errors.telefono : ''}
+                helperText={
+                  showError('telefono')
+                    ? errors.telefono
+                    : ''
+                }
                 disabled={isFormLocked}
               />
             </Box>
 
-            {/* Edad */}
             <Box>
               <TextField
                 fullWidth
@@ -588,7 +920,9 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 onBlur={handleBlur}
                 placeholder="Edad del paciente"
                 error={showError('edad')}
-                helperText={showError('edad') ? errors.edad : ''}
+                helperText={
+                  showError('edad') ? errors.edad : ''
+                }
                 disabled={isFormLocked}
               />
             </Box>
@@ -606,17 +940,23 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
             mb: 3,
           }}
         >
-          <Box component="legend" sx={{ px: 1, fontWeight: 'bold' }}>
+          <Box
+            component="legend"
+            sx={{ px: 1, fontWeight: 'bold' }}
+          >
             Información del diagnóstico
           </Box>
+
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: '1fr 1fr',
+              },
               gap: 2,
             }}
           >
-            {/* Material */}
             <Box>
               <TextField
                 fullWidth
@@ -627,26 +967,38 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 onBlur={handleBlur}
                 placeholder="Tipo de material"
                 error={showError('material')}
-                helperText={showError('material') ? errors.material : ''}
+                helperText={
+                  showError('material')
+                    ? errors.material
+                    : ''
+                }
               />
             </Box>
 
-            {/* Profesional Solicitante */}
             <Box>
               <TextField
                 fullWidth
                 label="Profesional Solicitante"
                 name="profesionalSolicitante"
-                value={formData.profesionalSolicitante}
+                value={
+                  formData.profesionalSolicitante
+                }
                 onChange={handleChange}
                 onBlur={handleBlur}
                 placeholder="Nombre del profesional"
-                error={showError('profesionalSolicitante')}
-                helperText={showError('profesionalSolicitante') ? errors.profesionalSolicitante : ''}
+                error={showError(
+                  'profesionalSolicitante',
+                )}
+                helperText={
+                  showError(
+                    'profesionalSolicitante',
+                  )
+                    ? errors.profesionalSolicitante
+                    : ''
+                }
               />
             </Box>
 
-            {/* Obra Social FAMAS */}
             <Box>
               <TextField
                 fullWidth
@@ -657,14 +1009,23 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                 onBlur={handleBlur}
                 placeholder="Obra social o datos FAMAS"
                 error={showError('obraSocialFamas')}
-                helperText={showError('obraSocialFamas') ? errors.obraSocialFamas : ''}
+                helperText={
+                  showError('obraSocialFamas')
+                    ? errors.obraSocialFamas
+                    : ''
+                }
               />
             </Box>
 
-            {/* Biopsias Previas */}
             <Box>
-              <FormControl fullWidth error={showError('biopsiasPrevias')}>
-                <InputLabel id="biopsias-label">Biopsias Previas</InputLabel>
+              <FormControl
+                fullWidth
+                error={showError('biopsiasPrevias')}
+              >
+                <InputLabel id="biopsias-label">
+                  ¿Estudio previo?
+                </InputLabel>
+
                 <Select
                   labelId="biopsias-label"
                   id="biopsias-select"
@@ -672,20 +1033,61 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
                   value={formData.biopsiasPrevias}
                   onChange={handleSelectChange}
                   onBlur={handleBlur}
-                  label="Biopsias Previas"
+                  label="¿Estudio previo?"
                 >
-                  <MenuItem value="">Seleccione opción</MenuItem>
+                  <MenuItem value="">
+                    Seleccione opción
+                  </MenuItem>
+
                   <MenuItem value="Si">Sí</MenuItem>
                   <MenuItem value="No">No</MenuItem>
                 </Select>
+
                 {showError('biopsiasPrevias') && (
-                  <FormHelperText>{errors.biopsiasPrevias}</FormHelperText>
+                  <FormHelperText>
+                    {errors.biopsiasPrevias}
+                  </FormHelperText>
                 )}
               </FormControl>
             </Box>
 
-            {/* Diagnóstico - ocupa toda la fila */}
-            <Box sx={{ gridColumn: { xs: '1', sm: '1 / -1' } }}>
+            {formData.biopsiasPrevias === 'Si' && (
+              <Box>
+                <TextField
+                  fullWidth
+                  label="Fecha del estudio previo"
+                  name="estudioPrevioFecha"
+                  type="date"
+                  value={
+                    formData.estudioPrevioFecha
+                  }
+                  onChange={handleDateChange}
+                  InputLabelProps={{ shrink: true }}
+                  inputProps={{
+                    max: maxPreviousStudyDate,
+                  }}
+                  error={showError(
+                    'estudioPrevioFecha',
+                  )}
+                  helperText={
+                    showError(
+                      'estudioPrevioFecha',
+                    )
+                      ? errors.estudioPrevioFecha
+                      : ''
+                  }
+                />
+              </Box>
+            )}
+
+            <Box
+              sx={{
+                gridColumn: {
+                  xs: '1',
+                  sm: '1 / -1',
+                },
+              }}
+            >
               <TextField
                 fullWidth
                 label="Diagnóstico"
@@ -700,19 +1102,36 @@ export default function PatientForm({ initialData, mode = 'create', patientId }:
           </Box>
         </Box>
 
-        {/* Botones de acción */}
         <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button variant="outlined" color="secondary" disabled={isSubmitting} onClick={handleCancel}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 2,
+              justifyContent: 'flex-end',
+            }}
+          >
+            <Button
+              variant="outlined"
+              color="secondary"
+              disabled={isSubmitting}
+              onClick={handleCancel}
+            >
               Cancelar
             </Button>
+
             <Button
               type="submit"
               variant="contained"
               color="primary"
-              disabled={!isFormValid() || isSubmitting}
+              disabled={
+                !isFormValid() || isSubmitting
+              }
             >
-              {isSubmitting ? 'Guardando...' : mode === 'edit' ? 'Actualizar Diagnóstico' : 'Guardar Diagnóstico'}
+              {isSubmitting
+                ? 'Guardando...'
+                : mode === 'edit'
+                  ? 'Actualizar Diagnóstico'
+                  : 'Guardar Diagnóstico'}
             </Button>
           </Box>
         </Box>

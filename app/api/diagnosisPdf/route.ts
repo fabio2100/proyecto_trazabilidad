@@ -20,6 +20,7 @@ interface DiagnosisPdfBody {
     profesionalSolicitante: string;
     obraSocialFamas: string;
     biopsiasPrevias: string;
+    estudioPrevioFecha?: string;
     diagnostico: string;
   };
 }
