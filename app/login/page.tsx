@@ -11,7 +11,6 @@ import {
   TextField,
   Button,
 } from '@mui/material';
-import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 
 function LoginContent() {
@@ -112,13 +111,6 @@ function LoginContent() {
             >
               {isSubmitting ? 'Ingresando...' : 'Ingresar'}
             </Button>
-
-            <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-              ¿No tienes cuenta?{' '}
-              <Link href="/register" style={{ color: '#1976d2', textDecoration: 'none' }}>
-                Regístrate aquí
-              </Link>
-            </Typography>
 
 
           </Box>
