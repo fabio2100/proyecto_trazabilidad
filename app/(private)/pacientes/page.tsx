@@ -23,7 +23,7 @@ import {
   TableSortLabel,
   InputAdornment,
 } from '@mui/material';
-import { deleteDiagnosis, getDiagnoses } from '@/services/diagnosisService';
+import { deleteDiagnosis, getDiagnoses, deleteDiagnosisReal } from '@/services/diagnosisService';
 import { Diagnosis } from '@/services/diagnosisService';
 import { useAuth } from '@/hooks/useAuth';
 import SearchIcon from '@mui/icons-material/Search';
@@ -37,6 +37,9 @@ export default function DiagnosesPage() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [diagnosisIdDeleting, setDiagnosisIdDeleting] = useState<string | null>(null);
   const [etiquetaLoadingId, setEtiquetaLoadingId] = useState<string | null>(null);
+
+  // Estado para diálogo de confirmación de eliminación
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Estados para ordenación y búsqueda
   type SortProperty = keyof Diagnosis | 'paciente' | 'fecha';
@@ -209,9 +212,10 @@ export default function DiagnosesPage() {
   const handleDeleteDiagnosis = async (diagnosisId: string) => {
     setErrorMessage('');
     setDiagnosisIdDeleting(diagnosisId);
+    setConfirmDeleteId(null);
 
     try {
-      await deleteDiagnosis(diagnosisId);
+      await deleteDiagnosisReal(diagnosisId);
       setDiagnoses((prev) => prev.filter((diagnosis) => diagnosis.id !== diagnosisId));
     } catch {
       setErrorMessage('No se pudo eliminar el diagnóstico. Intente nuevamente.');
@@ -509,10 +513,10 @@ export default function DiagnosesPage() {
                           variant="outlined"
                           color="error"
                           size="small"
-                          disabled={true}
-                          title="Eliminación no disponible todavía"
+                          disabled={diagnosisIdDeleting === diagnosis.id}
+                          onClick={() => setConfirmDeleteId(diagnosis.id)}
                         >
-                          Eliminar
+                          {diagnosisIdDeleting === diagnosis.id ? 'Eliminando...' : 'Eliminar'}
                         </Button>
                       </Box>
                     </TableCell>
@@ -600,6 +604,28 @@ export default function DiagnosesPage() {
           )}
           <Button onClick={handleCloseDialog} variant="outlined">
             Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de confirmación de eliminación */}
+      <Dialog open={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirmar eliminación</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            ¿Estás seguro de que deseas eliminar este diagnóstico? Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDeleteId(null)} variant="outlined">
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => confirmDeleteId && void handleDeleteDiagnosis(confirmDeleteId)}
+            variant="contained"
+            color="error"
+          >
+            Eliminar
           </Button>
         </DialogActions>
       </Dialog>

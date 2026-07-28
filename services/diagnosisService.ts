@@ -102,3 +102,16 @@ export const deleteDiagnosis = async (id: string): Promise<void> => {
 
   throw new Error('deleteDiagnosis no está implementado para modo API real todavía.');
 };
+
+export const deleteDiagnosisReal = async (id: string): Promise<void> => {
+  const response = await fetch(`/api/deleteDiagnosis?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  const payload = (await response.json().catch(() => null)) as { ok: boolean; message?: string } | null;
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.message ?? `Error al eliminar el diagnóstico. HTTP ${response.status}`);
+  }
+};

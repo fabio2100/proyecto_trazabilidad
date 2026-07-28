@@ -23,6 +23,7 @@ model Users {
   perfilId  Int      @default(1)
   informes  Informes[]
   notasTecnico NotasDelTecnico[]
+  auditoria Auditoria[]
   perfil    Perfiles @relation(fields: [perfilId], references: [id])
 }
 
@@ -64,10 +65,12 @@ model Diagnosis {
   biopsasPrevias          Boolean
   estudioPrevioFecha      DateTime?
   createdAt               DateTime @default(now())
+  eliminado               Boolean  @default(false)
 
   patient                 Patients  @relation(fields: [patientId], references: [dni])
   informe                 Informes?
   notasTecnico            NotasDelTecnico?
+  auditoria               Auditoria[]
 }
 
 model DiagnosisSequence {
@@ -84,6 +87,7 @@ model Informes {
   diagnosisId String    @unique
   userId      String
   createdAt   DateTime  @default(now())
+  eliminado   Boolean   @default(false)
 
   diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
   user        Users     @relation(fields: [userId], references: [id])
@@ -132,7 +136,18 @@ model NotasDelTecnico {
   createdAt   DateTime @default(now())
   cuerpo      String
   userId      String
+  eliminado   Boolean  @default(false)
 
   diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
   user        Users     @relation(fields: [userId], references: [id])
+}
+
+model Auditoria {
+  id          String   @id @default(uuid())
+  userId      String
+  diagnosisId String
+  createdAt   DateTime @default(now())
+
+  user        Users     @relation(fields: [userId], references: [id])
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
 }

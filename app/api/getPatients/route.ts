@@ -60,6 +60,7 @@ export async function GET() {
        LEFT JOIN "Patients" p ON d."patientId" = p.dni
        LEFT JOIN "Informes" i ON i."diagnosisId" = d.id
        ${notasJoin}
+       WHERE d.eliminado = false
        ORDER BY d."createdAt" DESC`,
     );
 

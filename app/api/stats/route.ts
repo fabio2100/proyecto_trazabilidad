@@ -14,10 +14,10 @@ export async function GET() {
   const pool = getPool();
   const result = await pool.query<StatsRow>(`
     SELECT
-      (SELECT COUNT(*) FROM "Patients")        AS patients,
-      (SELECT COUNT(*) FROM "Diagnosis")       AS diagnoses,
-      (SELECT COUNT(*) FROM "NotasDelTecnico") AS notas,
-      (SELECT COUNT(*) FROM "Informes")        AS informes
+      (SELECT COUNT(*) FROM "Patients")                              AS patients,
+      (SELECT COUNT(*) FROM "Diagnosis"       WHERE eliminado = false) AS diagnoses,
+      (SELECT COUNT(*) FROM "NotasDelTecnico" WHERE eliminado = false) AS notas,
+      (SELECT COUNT(*) FROM "Informes"        WHERE eliminado = false) AS informes
   `);
 
   const row = result.rows[0];
