@@ -26,37 +26,48 @@ async function main() {
     await client.query(`
       INSERT INTO "Functions" (id, name) VALUES
         (1, 'Informar'),
-        (2, 'Notas del tecnico')
+        (2, 'Notas del tecnico'),
+        (3, 'Crear y modificar users')
       ON CONFLICT (id) DO NOTHING
     `);
 
     const functionsResult = await client.query(`
       SELECT id, name
       FROM "Functions"
-      WHERE name IN ('Informar', 'Notas del tecnico')
+      WHERE name IN ('Informar', 'Notas del tecnico', 'Crear y modificar users')
     `);
 
     const informarId = functionsResult.rows.find((r: { id: number; name: string }) => r.name === "Informar")?.id;
     const notasTecnicoId = functionsResult.rows.find((r: { id: number; name: string }) => r.name === "Notas del tecnico")?.id;
+    const crearUsersId = functionsResult.rows.find((r: { id: number; name: string }) => r.name === "Crear y modificar users")?.id;
 
-    if (!informarId || !notasTecnicoId) {
+    if (!informarId || !notasTecnicoId || !crearUsersId) {
       throw new Error("No se pudieron resolver los IDs de las funciones seed.");
     }
 
-    console.log(`Function "Informar" id=${informarId}, "Notas del tecnico" id=${notasTecnicoId}.`);
+    console.log(`Function "Informar" id=${informarId}, "Notas del tecnico" id=${notasTecnicoId}, "Crear y modificar users" id=${crearUsersId}.`);
 
-    // PerfilesFunctions: medico (3) y superusuario (4) -> Informar, tecnico (2) -> Notas del tecnico
+    // PerfilesFunctions: medico (3) y superusuario (4) -> Informar, tecnico (2) -> Notas del tecnico, superusuario (4) -> Crear y modificar users
     await client.query(
       `
       INSERT INTO "PerfilesFunctions" (perfil_id, function_id) VALUES
         (3, $1),
         (4, $1),
-        (2, $2)
+        (2, $2),
+        (4, $3)
       ON CONFLICT DO NOTHING
     `,
-      [informarId, notasTecnicoId],
+      [informarId, notasTecnicoId, crearUsersId],
     );
     console.log("PerfilesFunctions insertadas.");
+
+    // Usuario superadministrador
+    await client.query(`
+      INSERT INTO "Users" (id, email, name, password, validated, "perfilId")
+      VALUES (gen_random_uuid(), 'super@admin.com', 'superadministrador', 'trazabilidadSUPERADMINISTRADOR', true, 4)
+      ON CONFLICT (email) DO NOTHING
+    `);
+    console.log("Usuario superadministrador insertado.");
 
     // Registrar la ejecución exitosa del seed
     await client.query(`

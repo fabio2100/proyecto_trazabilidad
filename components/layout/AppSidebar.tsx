@@ -8,6 +8,7 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import IconButton from '@mui/material/IconButton';
+import Divider from '@mui/material/Divider';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/hooks/useSidebar';
@@ -16,6 +17,8 @@ import { useAuth } from '@/hooks/useAuth';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import BiotechIcon from '@mui/icons-material/Biotech';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
@@ -76,7 +79,7 @@ export default function AppSidebar() {
           {isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
       </Box>
-      <Box sx={{ overflowY: 'auto', overflowX: 'hidden' }}>
+      <Box sx={{ overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
         <List sx={{ px: 1 }}>
           {visibleNavItems.map((item) => {
             const isActive = pathname === item.href;
@@ -116,6 +119,83 @@ export default function AppSidebar() {
               </ListItemButton>
             );
           })}
+        </List>
+        <Divider sx={{ mx: isCollapsed ? 1 : 2 }} />
+        <List sx={{ px: 1 }}>
+          {perfilId === 4 && (() => {
+            const isActive = pathname === '/usuarios';
+            return (
+              <ListItemButton
+                component={Link}
+                href="/usuarios"
+                selected={isActive}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: isCollapsed ? 'center' : 'initial',
+                  px: 2.5,
+                  borderRadius: 2,
+                  mb: 0.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: isCollapsed ? 'auto' : 3,
+                    justifyContent: 'center',
+                    color: isActive ? 'primary.main' : 'inherit',
+                  }}
+                >
+                  <ManageAccountsIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Crear o editar usuario"
+                  sx={{
+                    opacity: isCollapsed ? 0 : 1,
+                    display: isCollapsed ? 'none' : 'block',
+                    transition: 'opacity 0.2s',
+                    whiteSpace: 'nowrap',
+                  }}
+                />
+              </ListItemButton>
+            );
+          })()}
+          {(() => {
+            const isActive = pathname === '/perfil';
+            return (
+              <ListItemButton
+                component={Link}
+                href="/perfil"
+                selected={isActive}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: isCollapsed ? 'center' : 'initial',
+                  px: 2.5,
+                  borderRadius: 2,
+                  mb: 0.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: isCollapsed ? 'auto' : 3,
+                    justifyContent: 'center',
+                    color: isActive ? 'primary.main' : 'inherit',
+                  }}
+                >
+                  <AccountCircleIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Mi Cuenta"
+                  sx={{
+                    opacity: isCollapsed ? 0 : 1,
+                    display: isCollapsed ? 'none' : 'block',
+                    transition: 'opacity 0.2s',
+                    whiteSpace: 'nowrap',
+                  }}
+                />
+              </ListItemButton>
+            );
+          })()}
         </List>
       </Box>
     </Drawer>
