@@ -178,7 +178,7 @@ async function toPdfBuffer(data: InformeJoinRow, onlyDiagnosis = false) {
   drawLine(`Fecha diagnostico: ${new Date(data.diagnosisCreatedAt).toLocaleString()}`);
   y -= 8;
 
-  if (!onlyDiagnosis) {
+  if (!onlyDiagnosis || data.notasTecnicoId) {
     drawLine('Informacion de notas del tecnico', 14, true);
     if (!data.notasTecnicoId) {
       drawLine('Sin notas del tecnico.');
@@ -201,13 +201,19 @@ async function toPdfBuffer(data: InformeJoinRow, onlyDiagnosis = false) {
       }
     }
     y -= 8;
+  }
 
+  if (!onlyDiagnosis) {
     drawLine('Informacion de informe', 14, true);
-    drawLine(`ID informe: ${data.informeId ?? ''}`);
-    drawLine(`Creado por: ${data.informeCreatorName ?? 'No disponible'}`);
-    drawLine(`Fecha informe: ${data.informeCreatedAt ? new Date(data.informeCreatedAt).toLocaleString() : ''}`);
-    drawLine('Cuerpo:', 11, true);
-    drawParagraph(data.informeCuerpo || '');
+    if (!data.informeId) {
+      drawLine('Sin informe cargado.');
+    } else {
+      drawLine(`ID informe: ${data.informeId}`);
+      drawLine(`Creado por: ${data.informeCreatorName ?? 'No disponible'}`);
+      drawLine(`Fecha informe: ${data.informeCreatedAt ? new Date(data.informeCreatedAt).toLocaleString() : 'No disponible'}`);
+      drawLine('Cuerpo:', 11, true);
+      drawParagraph(data.informeCuerpo || '');
+    }
   }
 
   const bytes = await pdfDoc.save();

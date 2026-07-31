@@ -27,6 +27,8 @@ import { deleteDiagnosis, getDiagnoses, deleteDiagnosisReal } from '@/services/d
 import { Diagnosis } from '@/services/diagnosisService';
 import { useAuth } from '@/hooks/useAuth';
 import SearchIcon from '@mui/icons-material/Search';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 export default function DiagnosesPage() {
   const { perfilId } = useAuth();
@@ -53,6 +55,10 @@ export default function DiagnosesPage() {
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
   };
+
+  const renderAvailabilityIcon = (available: boolean) => (
+    available ? <CheckCircleIcon color="success" fontSize="small" /> : <CancelIcon color="error" fontSize="small" />
+  );
 
 
   /**
@@ -348,7 +354,7 @@ export default function DiagnosesPage() {
         </Typography>
 
         <TextField
-          placeholder="Busque sobre la columna"
+          placeholder="Busque sobre la tabla"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           variant="outlined"
@@ -415,6 +421,7 @@ export default function DiagnosesPage() {
                       Fecha
                     </TableSortLabel>
                   </TableCell>
+                  <TableCell align="center">Notas del técnico</TableCell>
                   <TableCell>
                     <TableSortLabel
                       active={orderBy === 'hasInforme'}
@@ -445,24 +452,15 @@ export default function DiagnosesPage() {
                     <TableCell>{diagnosis.sampleCode ?? 'Sin asignar'}</TableCell>
 
                     <TableCell>{getDiagnosisDisplayDate(diagnosis)}</TableCell>
-                    <TableCell>{diagnosis.hasInforme ? 'Disponible' : 'Pendiente'}</TableCell>
+                    <TableCell align="center">{renderAvailabilityIcon(diagnosis.hasNotasTecnico)}</TableCell>
+                    <TableCell align="center">{renderAvailabilityIcon(diagnosis.hasInforme)}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Button
                           component={Link}
-                          href={`/pdf/${diagnosis.id}?onlyDiagnosis=true`}
+                          href={`/pdf/${diagnosis.id}?useDiagnosisId=true`}
                           variant="outlined"
                           size="small"
-                        >
-                          Ver diagnóstico
-                        </Button>
-                        <Button
-                          component={Link}
-                          href={`/pdf/${diagnosis.informeId}`}
-                          variant="outlined"
-                          size="small"
-                          disabled={!diagnosis.hasInforme || !diagnosis.informeId}
-                          title={!diagnosis.hasInforme ? 'No hay informe disponible' : undefined}
                         >
                           Ver informe
                         </Button>

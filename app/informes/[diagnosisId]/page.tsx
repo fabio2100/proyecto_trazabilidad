@@ -29,6 +29,7 @@ interface DiagnosisData {
   createdAt: string;
   notasTecnicoId: string | null;
   notasTecnicoCuerpo: string | null;
+  notasTecnicoImagenes: string[];
   informeId: string | null;
   informeCuerpo: string | null;
 }
@@ -213,6 +214,35 @@ export default function InformesByDiagnosisPage() {
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                       <strong>Contenido:</strong> {diagnosisData.notasTecnicoCuerpo ?? 'Sin contenido'}
                     </Typography>
+                    <Typography variant="body2"><strong>Imágenes:</strong></Typography>
+                    {diagnosisData.notasTecnicoImagenes && diagnosisData.notasTecnicoImagenes.length > 0 ? (
+                      <Stack spacing={1.5}>
+                        {diagnosisData.notasTecnicoImagenes.map((imageUrl, index) => (
+                          <Paper key={`${imageUrl}-${index}`} variant="outlined" sx={{ p: 1.5 }}>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                              <Box
+                                component="img"
+                                src={imageUrl}
+                                alt={`Imagen técnica ${index + 1}`}
+                                sx={{ width: { xs: '100%', sm: 160 }, height: { xs: 'auto', sm: 110 }, objectFit: 'cover', borderRadius: 1 }}
+                              />
+                              <Typography
+                                component="a"
+                                href={imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                variant="caption"
+                                sx={{ wordBreak: 'break-all' }}
+                              >
+                                {imageUrl}
+                              </Typography>
+                            </Stack>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2">Sin imágenes registradas.</Typography>
+                    )}
                   </>
                 ) : (
                   <Typography variant="body2">Sin notas del técnico registradas.</Typography>

@@ -21,6 +21,7 @@ function PdfViewerContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const onlyDiagnosis = searchParams.get('onlyDiagnosis') === 'true';
+  const useDiagnosisId = searchParams.get('useDiagnosisId') === 'true';
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -35,7 +36,7 @@ function PdfViewerContent() {
 
       if (!idInforme) {
         setErrorMessage(
-          onlyDiagnosis
+          onlyDiagnosis || useDiagnosisId
             ? 'No se especificó el diagnóstico a visualizar.'
             : 'No se especificó el informe a visualizar.'
         );
@@ -50,14 +51,14 @@ function PdfViewerContent() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            ...(onlyDiagnosis ? { diagnosisId: idInforme } : { idInforme }),
+            ...(onlyDiagnosis || useDiagnosisId ? { diagnosisId: idInforme } : { idInforme }),
             onlyDiagnosis,
           }),
         });
 
         if (!response.ok) {
           setErrorMessage(
-            onlyDiagnosis
+            onlyDiagnosis || useDiagnosisId
               ? 'No se pudo cargar el diagnóstico. Intente nuevamente.'
               : 'No se pudo cargar el informe. Intente nuevamente.'
           );
@@ -73,7 +74,7 @@ function PdfViewerContent() {
       } catch (error) {
         console.error('Error al cargar PDF:', error);
         setErrorMessage(
-          onlyDiagnosis
+          onlyDiagnosis || useDiagnosisId
             ? 'Error al cargar el diagnóstico. Intente nuevamente.'
             : 'Error al cargar el informe. Intente nuevamente.'
         );
@@ -90,7 +91,7 @@ function PdfViewerContent() {
         URL.revokeObjectURL(pdfUrl);
       }
     };
-  }, [idInforme, onlyDiagnosis]);
+  }, [idInforme, onlyDiagnosis, useDiagnosisId]);
 
   const handleDownloadPdf = () => {
     if (!pdfBlob) return;
