@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 interface GuardarNotasBody {
   diagnosisId: string;
   cuerpo: string;
+  imagenes?: string[];
 }
 
 export async function POST(request: NextRequest) {
@@ -25,6 +26,12 @@ export async function POST(request: NextRequest) {
 
   const diagnosisId = body.diagnosisId?.trim() ?? '';
   const cuerpo = body.cuerpo?.trim() ?? '';
+  const imagenes = Array.isArray(body.imagenes)
+    ? body.imagenes
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+    : [];
 
   if (!diagnosisId || !cuerpo) {
     return NextResponse.json(
@@ -43,10 +50,11 @@ export async function POST(request: NextRequest) {
     const pool = getPool();
 
     await pool.query(
-      `INSERT INTO "NotasDelTecnico" (id, "diagnosisId", cuerpo, "userId")
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT ("diagnosisId") DO UPDATE SET cuerpo = EXCLUDED.cuerpo, "userId" = EXCLUDED."userId"`,
-      [randomUUID(), diagnosisId, cuerpo, userId],
+      `INSERT INTO "NotasDelTecnico" (id, "diagnosisId", cuerpo, imagenes, "userId")
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT ("diagnosisId")
+       DO UPDATE SET cuerpo = EXCLUDED.cuerpo, imagenes = EXCLUDED.imagenes, "userId" = EXCLUDED."userId"`,
+      [randomUUID(), diagnosisId, cuerpo, imagenes, userId],
     );
 
     return NextResponse.json({ ok: true, message: 'Notas del técnico guardadas correctamente.' });

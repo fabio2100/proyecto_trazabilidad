@@ -30,6 +30,7 @@ interface DiagnosisData {
   biopsasPrevias: boolean;
   createdAt: string;
   notasTecnicoCuerpo: string | null;
+  notasTecnicoImagenes: string[];
 }
 
 export default function NotasTecnicoPage() {
@@ -47,6 +48,8 @@ export default function NotasTecnicoPage() {
   const [loadingDiagnosis, setLoadingDiagnosis] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState(false);
+  const [imagenes, setImagenes] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || !diagnosisId) return;
@@ -59,6 +62,9 @@ export default function NotasTecnicoPage() {
           setDiagnosisData(json.data);
           if (json.data.notasTecnicoCuerpo) {
             setNotas(json.data.notasTecnicoCuerpo);
+          }
+          if (Array.isArray(json.data.notasTecnicoImagenes)) {
+            setImagenes(json.data.notasTecnicoImagenes);
           }
         } else {
           setDiagnosisError(json.message ?? 'Estudio no encontrado');
@@ -121,6 +127,7 @@ export default function NotasTecnicoPage() {
         body: JSON.stringify({
           diagnosisId,
           cuerpo: notasValue,
+          imagenes,
         }),
       });
 
@@ -139,6 +146,62 @@ export default function NotasTecnicoPage() {
     } finally {
       setSavingNotas(false);
     }
+  };
+
+  const handleUploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+
+    setSaveMessage(null);
+    setSaveError(false);
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setSaveError(true);
+      setSaveMessage('Formato no soportado. Use JPG, PNG, WEBP o GIF.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveError(true);
+      setSaveMessage('La imagen supera el máximo de 5MB.');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/notas-tecnico-upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok || !data.url) {
+        setSaveError(true);
+        setSaveMessage(data.message ?? 'No se pudo subir la imagen.');
+        return;
+      }
+
+      setImagenes((prev) => [...prev, data.url]);
+      setSaveError(false);
+      setSaveMessage('Imagen subida correctamente. Recuerda guardar las notas para persistir los cambios.');
+    } catch {
+      setSaveError(true);
+      setSaveMessage('Error de red al subir la imagen.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = (url: string) => {
+    setImagenes((prev) => prev.filter((item) => item !== url));
   };
 
   const pacienteNombre =
@@ -203,6 +266,56 @@ export default function NotasTecnicoPage() {
             placeholder="Escriba aquí las notas del técnico..."
             fullWidth
           />
+
+          <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'background.default' }}>
+            <Stack spacing={2}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                Imágenes
+              </Typography>
+
+              <Box>
+                <Button variant="outlined" component="label" disabled={uploadingImage}>
+                  {uploadingImage ? 'Subiendo imagen...' : 'Agregar imagen'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    hidden
+                    onChange={handleUploadImage}
+                  />
+                </Button>
+                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                  Formatos permitidos: JPG, PNG, WEBP, GIF. Tamaño máximo: 5MB.
+                </Typography>
+              </Box>
+
+              {imagenes.length === 0 ? (
+                <Typography variant="body2">No hay imágenes cargadas.</Typography>
+              ) : (
+                <Stack spacing={1.5}>
+                  {imagenes.map((url) => (
+                    <Paper key={url} variant="outlined" sx={{ p: 1.5 }}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                        <Box
+                          component="img"
+                          src={url}
+                          alt="Imagen de nota técnica"
+                          sx={{ width: { xs: '100%', sm: 160 }, height: { xs: 'auto', sm: 110 }, objectFit: 'cover', borderRadius: 1 }}
+                        />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="caption" sx={{ wordBreak: 'break-all' }}>
+                            {url}
+                          </Typography>
+                        </Box>
+                        <Button color="error" onClick={() => handleRemoveImage(url)}>
+                          Quitar
+                        </Button>
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          </Paper>
 
           {saveMessage && (
             <Alert severity={saveError ? 'error' : 'success'}>

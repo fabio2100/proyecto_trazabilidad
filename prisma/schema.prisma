@@ -138,6 +138,7 @@ model NotasDelTecnico {
   diagnosisId String   @unique
   createdAt   DateTime @default(now())
   cuerpo      String
+  imagenes    String[] @default([])
   userId      String
   eliminado   Boolean  @default(false)
 
