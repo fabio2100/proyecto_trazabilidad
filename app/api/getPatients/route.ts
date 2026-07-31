@@ -4,6 +4,9 @@ import { getPool } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 100;
+
 interface DiagnosisRow {
   id: string;
   biopsasPrevias: boolean;
@@ -21,8 +24,17 @@ interface DiagnosisRow {
   hasNotasTecnico: boolean;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const rawLimit = Number(searchParams.get('limit') ?? DEFAULT_LIMIT);
+    const rawOffset = Number(searchParams.get('offset') ?? 0);
+    const search = searchParams.get('q')?.trim() ?? '';
+    const limit = Number.isInteger(rawLimit)
+      ? Math.min(Math.max(rawLimit, 1), MAX_LIMIT)
+      : DEFAULT_LIMIT;
+    const offset = Number.isInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
     const pool = getPool();
 
     const notasTableCheck = await pool.query<{ exists: boolean }>(
@@ -40,6 +52,29 @@ export async function GET() {
     const notasSelect = hasNotasTable
       ? '(n.id IS NOT NULL) AS "hasNotasTecnico"'
       : 'FALSE AS "hasNotasTecnico"';
+
+    const values: Array<string | number> = [];
+    let whereClause = 'WHERE d.eliminado = false';
+
+    if (search) {
+      values.push(`%${search.toLowerCase()}%`);
+      const searchParam = `$${values.length}`;
+      whereClause += `
+        AND (
+          LOWER(COALESCE(p.nombre, '')) LIKE ${searchParam}
+          OR LOWER(COALESCE(p.apellido, '')) LIKE ${searchParam}
+          OR LOWER(COALESCE(d."patientId", '')) LIKE ${searchParam}
+          OR LOWER(COALESCE(d.diagnosis, '')) LIKE ${searchParam}
+          OR LOWER(COALESCE(d.material, '')) LIKE ${searchParam}
+          OR LOWER(COALESCE(d."profesionalSolicitante", '')) LIKE ${searchParam}
+          OR LOWER(COALESCE(d."sampleCode", '')) LIKE ${searchParam}
+          OR LOWER(CASE WHEN i.id IS NOT NULL THEN 'disponible' ELSE 'pendiente' END) LIKE ${searchParam}
+        )`;
+    }
+
+    values.push(limit + 1, offset);
+    const limitParam = `$${values.length - 1}`;
+    const offsetParam = `$${values.length}`;
 
     const result = await pool.query<DiagnosisRow>(
       `SELECT d.id,
@@ -60,11 +95,16 @@ export async function GET() {
        LEFT JOIN "Patients" p ON d."patientId" = p.dni
        LEFT JOIN "Informes" i ON i."diagnosisId" = d.id
        ${notasJoin}
-       WHERE d.eliminado = false
-       ORDER BY d."createdAt" DESC`,
+       ${whereClause}
+       ORDER BY d."createdAt" DESC
+       LIMIT ${limitParam} OFFSET ${offsetParam}`,
+      values,
     );
 
-    return NextResponse.json({ ok: true, data: result.rows });
+    const hasMore = result.rows.length > limit;
+    const data = hasMore ? result.rows.slice(0, limit) : result.rows;
+
+    return NextResponse.json({ ok: true, data, hasMore });
   } catch (error) {
     console.error('[getPatients] Error completo:', error);
     return NextResponse.json(

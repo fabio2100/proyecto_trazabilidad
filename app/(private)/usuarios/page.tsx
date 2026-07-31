@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Table from '@mui/material/Table';
@@ -23,9 +23,12 @@ import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import Alert from '@mui/material/Alert';
 import Chip from '@mui/material/Chip';
+import TablePagination from '@mui/material/TablePagination';
 import EditIcon from '@mui/icons-material/Edit';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
 
 interface UserRow {
   id: string;
@@ -47,6 +50,7 @@ const SUPERUSUARIO_ID = 4;
 const emptyCreate = { email: '', name: '', password: '', confirmPassword: '', perfilId: '' };
 
 export default function UsuariosPage() {
+  const PAGE_FETCH_SIZE = 25;
   const [users, setUsers] = useState<UserRow[]>([]);
   const [perfiles, setPerfiles] = useState<Perfil[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,35 +73,71 @@ export default function UsuariosPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
+  const fetchUsers = useCallback(async (append = false, offsetOverride = 0, searchOverride = '') => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setPageError(null);
     try {
-      const res = await fetch('/api/admin/users', { credentials: 'include' });
+      const params = new URLSearchParams({
+        limit: String(PAGE_FETCH_SIZE),
+        offset: String(append ? offsetOverride : 0),
+      });
+      if (searchOverride) {
+        params.set('q', searchOverride);
+      }
+      const res = await fetch(`/api/admin/users?${params.toString()}`, { credentials: 'include' });
       if (!res.ok) {
         setPageError('Error al cargar los usuarios.');
         return;
       }
-      const data = (await res.json()) as { users: UserRow[] };
-      setUsers(data.users);
+      const data = (await res.json()) as { users: UserRow[]; hasMore?: boolean };
+      setUsers((prev) => (append ? [...prev, ...data.users] : data.users));
+      setHasMore(data.hasMore === true);
     } catch {
       setPageError('Error de conexión.');
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    void fetchUsers();
-
     fetch('/api/getPerfiles', { credentials: 'include' })
       .then((r) => r.json())
       .then((data: { perfiles: Perfil[] }) => {
         setPerfiles(data.perfiles.filter((p) => p.id !== SUPERUSUARIO_ID));
       })
       .catch(() => null);
-  }, [fetchUsers]);
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    void fetchUsers(false, 0, debouncedSearchTerm);
+  }, [debouncedSearchTerm, fetchUsers]);
 
   // ── Edit ──────────────────────────────────────────────────────────────────
   const openEdit = (user: UserRow) => {
@@ -144,7 +184,7 @@ export default function UsuariosPage() {
         return;
       }
       setEditSuccess('Usuario actualizado correctamente.');
-      await fetchUsers();
+      await fetchUsers(false);
     } catch {
       setEditError('Error de conexión.');
     } finally {
@@ -195,7 +235,7 @@ export default function UsuariosPage() {
       }
       setCreateSuccess('Usuario creado correctamente.');
       setCreateForm(emptyCreate);
-      await fetchUsers();
+      await fetchUsers(false);
     } catch {
       setCreateError('Error de conexión.');
     } finally {
@@ -210,6 +250,13 @@ export default function UsuariosPage() {
     createForm.confirmPassword.length > 0 &&
     createForm.password !== createForm.confirmPassword;
 
+  const filteredUsers = users;
+
+  const paginatedUsers = filteredUsers.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
+  );
+
   return (
     <Box sx={{ px: 3, py: 4, maxWidth: 900, mx: 'auto' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
@@ -223,6 +270,23 @@ export default function UsuariosPage() {
       </Typography>
 
       {pageError && <Alert severity="error" sx={{ mb: 2 }}>{pageError}</Alert>}
+
+      <TextField
+        placeholder="Busca sobre la tabla"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        variant="outlined"
+        size="small"
+        fullWidth
+        sx={{ mb: 3 }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <SearchIcon color="action" />
+            </InputAdornment>
+          ),
+        }}
+      />
 
       <TableContainer component={Paper} variant="outlined">
         <Table size="small">
@@ -241,12 +305,12 @@ export default function UsuariosPage() {
               <TableRow>
                 <TableCell colSpan={6} align="center">Cargando...</TableCell>
               </TableRow>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">No hay usuarios.</TableCell>
               </TableRow>
             ) : (
-              users.map((u) => (
+              paginatedUsers.map((u) => (
                 <TableRow key={u.id} hover>
                   <TableCell>{u.name ?? '—'}</TableCell>
                   <TableCell>{u.email}</TableCell>
@@ -266,6 +330,31 @@ export default function UsuariosPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {!loading && users.length > 0 && (
+        <>
+          <TablePagination
+            component="div"
+            count={filteredUsers.length}
+            page={page}
+            onPageChange={(_, nextPage) => setPage(nextPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(Number(event.target.value));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 25, 50]}
+            labelRowsPerPage="Filas por página"
+          />
+          {hasMore && (
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+              <Button variant="outlined" onClick={() => void fetchUsers(true, users.length, debouncedSearchTerm)} disabled={loadingMore}>
+                {loadingMore ? 'Cargando...' : 'Cargar más'}
+              </Button>
+            </Box>
+          )}
+        </>
+      )}
 
       <Box sx={{ mt: 2 }}>
         <Button

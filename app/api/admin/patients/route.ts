@@ -5,6 +5,8 @@ import { getPool } from '@/lib/db';
 export const runtime = 'nodejs';
 
 const SUPERUSUARIO_PERFIL_ID = 4;
+const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 100;
 
 interface PatientRow {
   dni: string;
@@ -100,13 +102,47 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  const rawLimit = Number(request.nextUrl.searchParams.get('limit') ?? DEFAULT_LIMIT);
+  const rawOffset = Number(request.nextUrl.searchParams.get('offset') ?? 0);
+  const search = request.nextUrl.searchParams.get('q')?.trim() ?? '';
+  const limit = Number.isInteger(rawLimit)
+    ? Math.min(Math.max(rawLimit, 1), MAX_LIMIT)
+    : DEFAULT_LIMIT;
+  const offset = Number.isInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
+  const values: Array<string | number> = [];
+  let whereClause = '';
+
+  if (search) {
+    values.push(`%${search.toLowerCase()}%`);
+    const searchParam = `$${values.length}`;
+    whereClause = `
+      WHERE (
+        LOWER(COALESCE(dni, '')) LIKE ${searchParam}
+        OR LOWER(COALESCE(nombre, '')) LIKE ${searchParam}
+        OR LOWER(COALESCE(apellido, '')) LIKE ${searchParam}
+        OR LOWER(COALESCE(email, '')) LIKE ${searchParam}
+        OR LOWER(COALESCE(telefono, '')) LIKE ${searchParam}
+        OR CAST(age AS TEXT) LIKE ${searchParam}
+      )`;
+  }
+
+  values.push(limit + 1, offset);
+  const limitParam = `$${values.length - 1}`;
+  const offsetParam = `$${values.length}`;
+
   const result = await pool.query<PatientRow>(`
     SELECT dni, nombre, apellido, age, email, telefono, "createdAt"
     FROM "Patients"
+    ${whereClause}
     ORDER BY "createdAt" DESC
-  `);
+    LIMIT ${limitParam} OFFSET ${offsetParam}
+  `, values);
 
-  return NextResponse.json({ patients: result.rows });
+  const hasMore = result.rows.length > limit;
+  const patients = hasMore ? result.rows.slice(0, limit) : result.rows;
+
+  return NextResponse.json({ patients, hasMore });
 }
 
 export async function POST(request: NextRequest) {

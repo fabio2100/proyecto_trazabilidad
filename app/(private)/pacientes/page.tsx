@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Alert,
@@ -22,8 +22,9 @@ import {
   Typography,
   TableSortLabel,
   InputAdornment,
+  TablePagination,
 } from '@mui/material';
-import { deleteDiagnosis, getDiagnoses, deleteDiagnosisReal } from '@/services/diagnosisService';
+import { getDiagnoses, deleteDiagnosisReal } from '@/services/diagnosisService';
 import { Diagnosis } from '@/services/diagnosisService';
 import { useAuth } from '@/hooks/useAuth';
 import SearchIcon from '@mui/icons-material/Search';
@@ -31,6 +32,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 export default function DiagnosesPage() {
+  const PAGE_FETCH_SIZE = 25;
   const { perfilId } = useAuth();
   const hasInformePermission = perfilId === 3 || perfilId === 4;
   const hasNotasTecnicoPermission = perfilId === 2 || perfilId === 4;
@@ -49,6 +51,11 @@ export default function DiagnosesPage() {
   const [orderBy, setOrderBy] = useState<SortProperty>('fecha');
   const [order, setOrder] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const handleRequestSort = (property: SortProperty) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -59,6 +66,34 @@ export default function DiagnosesPage() {
   const renderAvailabilityIcon = (available: boolean) => (
     available ? <CheckCircleIcon color="success" fontSize="small" /> : <CancelIcon color="error" fontSize="small" />
   );
+
+  const loadDiagnoses = useCallback(async (append: boolean, offsetOverride = 0, searchOverride = '') => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
+    setErrorMessage('');
+
+    try {
+      const result = await getDiagnoses({
+        limit: PAGE_FETCH_SIZE,
+        offset: append ? offsetOverride : 0,
+        search: searchOverride,
+      });
+
+      setDiagnoses((prev) => (append ? [...prev, ...result.data] : result.data));
+      setHasMore(result.hasMore);
+    } catch {
+      setErrorMessage('No se pudieron cargar los diagnósticos. Intente nuevamente.');
+    } finally {
+      if (append) {
+        setIsLoadingMore(false);
+      } else {
+        setIsLoading(false);
+      }
+    }
+  }, []);
 
 
   /**
@@ -110,47 +145,12 @@ export default function DiagnosesPage() {
     return Number.isNaN(createdAtTimestamp) ? 0 : createdAtTimestamp;
   };
 
-  const filteredDiagnoses = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return diagnoses;
-    }
-
-    const term = searchTerm.toLowerCase().trim();
-
-    return diagnoses.filter((d) => {
-      // Check patient name
-      const patientName = `${d.patientApellido || ''}, ${d.patientNombre || ''}`.toLowerCase();
-      if (patientName.includes(term)) return true;
-
-      // Check dni (patientId)
-      if (d.patientId?.toLowerCase().includes(term)) return true;
-
-      // Check diagnosis
-      if (d.diagnosis?.toLowerCase().includes(term)) return true;
-
-      // Check material
-      if (d.material?.toLowerCase().includes(term)) return true;
-
-      // Check profesionalSolicitante
-      if (d.profesionalSolicitante?.toLowerCase().includes(term)) return true;
-
-      // Check fecha efectiva: histórica si es estudio previo,
-      // o fecha de carga si es un estudio nuevo.
-      const dateStr = getDiagnosisDisplayDate(d).toLowerCase();
-      if (dateStr.includes(term)) return true;
-
-      // Check informe
-      const informeStatus = (d.hasInforme ? 'Disponible' : 'Pendiente').toLowerCase();
-      if (informeStatus.includes(term)) return true;
-
-      return false;
-    });
-  }, [diagnoses, searchTerm]);
+  const filteredDiagnoses = diagnoses;
 
   const sortedDiagnoses = useMemo(() => {
     return [...filteredDiagnoses].sort((a, b) => {
-      let aVal: any;
-      let bVal: any;
+      let aVal: string | number | boolean | null | undefined;
+      let bVal: string | number | boolean | null | undefined;
 
       if (orderBy === 'paciente') {
         const aName = `${a.patientApellido || ''}, ${a.patientNombre || ''}`.toLowerCase();
@@ -198,22 +198,20 @@ export default function DiagnosesPage() {
   const [copyFeedback, setCopyFeedback] = useState<string>('');
 
   useEffect(() => {
-    const loadDiagnoses = async () => {
-      setIsLoading(true);
-      setErrorMessage('');
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 500);
 
-      try {
-        const data = await getDiagnoses();
-        setDiagnoses(data);
-      } catch {
-        setErrorMessage('No se pudieron cargar los diagnósticos. Intente nuevamente.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    return () => window.clearTimeout(timeoutId);
+  }, [searchTerm]);
 
-    void loadDiagnoses();
-  }, []);
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    void loadDiagnoses(false, 0, debouncedSearchTerm);
+  }, [debouncedSearchTerm, loadDiagnoses]);
 
   const handleDeleteDiagnosis = async (diagnosisId: string) => {
     setErrorMessage('');
@@ -346,6 +344,11 @@ export default function DiagnosesPage() {
     setCopyFeedback('');
   };
 
+  const paginatedDiagnoses = sortedDiagnoses.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
+  );
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper elevation={2} sx={{ p: 3 }}>
@@ -435,7 +438,7 @@ export default function DiagnosesPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sortedDiagnoses.map((diagnosis) => (
+                {paginatedDiagnoses.map((diagnosis) => (
                   <TableRow key={diagnosis.id} hover>
                     <TableCell>
                       {diagnosis.patientApellido && diagnosis.patientNombre ? (
@@ -524,6 +527,35 @@ export default function DiagnosesPage() {
             </Table>
           </Box>
         )}
+
+        {!isLoading && !errorMessage && diagnoses.length > 0 && (
+          <>
+            <TablePagination
+              component="div"
+              count={sortedDiagnoses.length}
+              page={page}
+              onPageChange={(_, nextPage) => setPage(nextPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(Number(event.target.value));
+                setPage(0);
+              }}
+              rowsPerPageOptions={[10, 25, 50]}
+              labelRowsPerPage="Filas por página"
+            />
+            {hasMore && (
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => void loadDiagnoses(true, diagnoses.length, debouncedSearchTerm)}
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore ? 'Cargando...' : 'Cargar más'}
+                </Button>
+              </Box>
+            )}
+          </>
+        )}
       </Paper>
 
       {/* Dialog para generar link temporal protegido */}
@@ -585,7 +617,7 @@ export default function DiagnosesPage() {
 
           {!isGeneratingLink && !generatedLinkData && !dialogErrorMessage && (
             <Typography variant="body2" color="textSecondary">
-              Haz clic en "Generar" para crear un link temporal protegido.
+              Haz clic en &quot;Generar&quot; para crear un link temporal protegido.
             </Typography>
           )}
         </DialogContent>

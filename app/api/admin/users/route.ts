@@ -7,6 +7,8 @@ import { getPool } from '@/lib/db';
 export const runtime = 'nodejs';
 
 const SUPERUSUARIO_PERFIL_ID = 4;
+const DEFAULT_LIMIT = 25;
+const MAX_LIMIT = 100;
 
 interface UserRow {
   id: string;
@@ -43,16 +45,46 @@ export async function GET(request: NextRequest) {
   const authResult = await requireSuperusuario(request);
   if (authResult instanceof NextResponse) return authResult;
 
+  const rawLimit = Number(request.nextUrl.searchParams.get('limit') ?? DEFAULT_LIMIT);
+  const rawOffset = Number(request.nextUrl.searchParams.get('offset') ?? 0);
+  const search = request.nextUrl.searchParams.get('q')?.trim() ?? '';
+  const limit = Number.isInteger(rawLimit)
+    ? Math.min(Math.max(rawLimit, 1), MAX_LIMIT)
+    : DEFAULT_LIMIT;
+  const offset = Number.isInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
   const pool = getPool();
+  const values: Array<string | number> = [SUPERUSUARIO_PERFIL_ID];
+  let whereClause = 'WHERE u."perfilId" != $1';
+
+  if (search) {
+    values.push(`%${search.toLowerCase()}%`);
+    const searchParam = `$${values.length}`;
+    whereClause += `
+      AND (
+        LOWER(COALESCE(u.name, '')) LIKE ${searchParam}
+        OR LOWER(COALESCE(u.email, '')) LIKE ${searchParam}
+        OR LOWER(COALESCE(p.tipo, '')) LIKE ${searchParam}
+        OR LOWER(CASE WHEN u.validated THEN 'sí' ELSE 'no' END) LIKE ${searchParam}
+      )`;
+  }
+
+  values.push(limit + 1, offset);
+  const limitParam = `$${values.length - 1}`;
+  const offsetParam = `$${values.length}`;
   const result = await pool.query<UserRow>(`
     SELECT u.id, u.email, u.name, u.validated, u."createdAt", u."perfilId", p.tipo AS "perfilTipo"
     FROM "Users" u
     JOIN "Perfiles" p ON p.id = u."perfilId"
-    WHERE u."perfilId" != $1
+    ${whereClause}
     ORDER BY u."createdAt" DESC
-  `, [SUPERUSUARIO_PERFIL_ID]);
+    LIMIT ${limitParam} OFFSET ${offsetParam}
+  `, values);
 
-  return NextResponse.json({ users: result.rows });
+  const hasMore = result.rows.length > limit;
+  const users = hasMore ? result.rows.slice(0, limit) : result.rows;
+
+  return NextResponse.json({ users, hasMore });
 }
 
 export async function POST(request: NextRequest) {

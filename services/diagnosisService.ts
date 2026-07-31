@@ -25,7 +25,19 @@ export type Diagnosis = DiagnosisRecord;
 interface GetDiagnosesResponse {
   ok: boolean;
   data?: DiagnosisRecord[];
+  hasMore?: boolean;
   message?: string;
+}
+
+interface GetDiagnosesOptions {
+  limit?: number;
+  offset?: number;
+  search?: string;
+}
+
+interface GetDiagnosesResult {
+  data: Diagnosis[];
+  hasMore: boolean;
 }
 
 const USE_MOCK = false; // Usar backend real
@@ -59,16 +71,30 @@ const saveDiagnosesToStorage = (diagnoses: DiagnosisRecord[]): void => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(diagnoses));
 };
 
-export const getDiagnoses = async (): Promise<Diagnosis[]> => {
+export const getDiagnoses = async (
+  options: GetDiagnosesOptions = {},
+): Promise<GetDiagnosesResult> => {
   if (USE_MOCK) {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(readDiagnosesFromStorage());
+        resolve({ data: readDiagnosesFromStorage(), hasMore: false });
       }, 150);
     });
   }
 
-  const response = await fetch('/api/getPatients');
+  const params = new URLSearchParams();
+  if (options.limit !== undefined) {
+    params.set('limit', String(options.limit));
+  }
+  if (options.offset !== undefined) {
+    params.set('offset', String(options.offset));
+  }
+  if (options.search?.trim()) {
+    params.set('q', options.search.trim());
+  }
+
+  const queryString = params.toString();
+  const response = await fetch(`/api/getPatients${queryString ? `?${queryString}` : ''}`);
 
   const payload = (await response
     .json()
@@ -85,7 +111,7 @@ export const getDiagnoses = async (): Promise<Diagnosis[]> => {
     throw new Error('La respuesta de diagnósticos no tiene un formato válido.');
   }
 
-  return payload.data;
+  return { data: payload.data, hasMore: payload.hasMore === true };
 };
 
 export const deleteDiagnosis = async (id: string): Promise<void> => {

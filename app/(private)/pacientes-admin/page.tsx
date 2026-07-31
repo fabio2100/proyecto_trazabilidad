@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Table from '@mui/material/Table';
@@ -18,10 +18,13 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import Alert from '@mui/material/Alert';
+import InputAdornment from '@mui/material/InputAdornment';
+import TablePagination from '@mui/material/TablePagination';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonalInjuryIcon from '@mui/icons-material/PersonalInjury';
+import SearchIcon from '@mui/icons-material/Search';
 import { useAuth } from '@/hooks/useAuth';
 
 interface PatientRow {
@@ -61,6 +64,7 @@ const emptyCreate: PatientFormState = {
 };
 
 export default function PacientesAdminPage() {
+  const PAGE_FETCH_SIZE = 25;
   const { perfilId, isAuthLoading } = useAuth();
 
   const [patients, setPatients] = useState<PatientRow[]>([]);
@@ -92,22 +96,44 @@ export default function PacientesAdminPage() {
   const [deleteSummary, setDeleteSummary] = useState<DeleteSummary | null>(null);
   const [deleteSummaryLoading, setDeleteSummaryLoading] = useState(false);
   const [deleteSummaryError, setDeleteSummaryError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchPatients = useCallback(async () => {
-    setLoading(true);
+  const fetchPatients = useCallback(async (append = false, offsetOverride = 0, searchOverride = '') => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setPageError(null);
     try {
-      const res = await fetch('/api/admin/patients', { credentials: 'include' });
+      const params = new URLSearchParams({
+        limit: String(PAGE_FETCH_SIZE),
+        offset: String(append ? offsetOverride : 0),
+      });
+      if (searchOverride) {
+        params.set('q', searchOverride);
+      }
+      const res = await fetch(`/api/admin/patients?${params.toString()}`, { credentials: 'include' });
       if (!res.ok) {
         setPageError('Error al cargar los pacientes.');
         return;
       }
-      const data = (await res.json()) as { patients: PatientRow[] };
-      setPatients(data.patients);
+      const data = (await res.json()) as { patients: PatientRow[]; hasMore?: boolean };
+      setPatients((prev) => (append ? [...prev, ...data.patients] : data.patients));
+      setHasMore(data.hasMore === true);
     } catch {
       setPageError('Error de conexión.');
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -119,9 +145,25 @@ export default function PacientesAdminPage() {
       setPageError('No autorizado para gestionar pacientes.');
       return;
     }
+  }, [isAuthLoading, perfilId]);
 
-    void fetchPatients();
-  }, [fetchPatients, isAuthLoading, perfilId]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    if (isAuthLoading || perfilId !== SUPERUSUARIO_ID) return;
+
+    void fetchPatients(false, 0, debouncedSearchTerm);
+  }, [debouncedSearchTerm, fetchPatients, isAuthLoading, perfilId]);
 
   const openEdit = (patient: PatientRow) => {
     setEditDni(patient.dni);
@@ -207,7 +249,7 @@ export default function PacientesAdminPage() {
       }
       setCreateSuccess('Paciente creado correctamente.');
       setCreateForm(emptyCreate);
-      await fetchPatients();
+      await fetchPatients(false);
     } catch {
       setCreateError('Error de conexión.');
     } finally {
@@ -247,7 +289,7 @@ export default function PacientesAdminPage() {
         return;
       }
       setEditSuccess('Paciente actualizado correctamente.');
-      await fetchPatients();
+      await fetchPatients(false);
     } catch {
       setEditError('Error de conexión.');
     } finally {
@@ -304,13 +346,20 @@ export default function PacientesAdminPage() {
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
       setDeleteSummary(null);
-      await fetchPatients();
+      await fetchPatients(false);
     } catch {
       setPageError('Error de conexión al eliminar.');
     } finally {
       setDeleteLoadingDni(null);
     }
   };
+
+  const filteredPatients = patients;
+
+  const paginatedPatients = filteredPatients.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage,
+  );
 
   return (
     <Box sx={{ px: 3, py: 4, maxWidth: 1000, mx: 'auto' }}>
@@ -325,6 +374,23 @@ export default function PacientesAdminPage() {
       </Typography>
 
       {pageError && <Alert severity="error" sx={{ mb: 2 }}>{pageError}</Alert>}
+
+      <TextField
+        placeholder="Busca sobre la tabla"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        variant="outlined"
+        size="small"
+        fullWidth
+        sx={{ mb: 3 }}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <SearchIcon color="action" />
+            </InputAdornment>
+          ),
+        }}
+      />
 
       <TableContainer component={Paper} variant="outlined">
         <Table size="small">
@@ -345,12 +411,12 @@ export default function PacientesAdminPage() {
               <TableRow>
                 <TableCell colSpan={8} align="center">Cargando...</TableCell>
               </TableRow>
-            ) : patients.length === 0 ? (
+            ) : filteredPatients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center">No hay pacientes.</TableCell>
               </TableRow>
             ) : (
-              patients.map((patient) => (
+              paginatedPatients.map((patient) => (
                 <TableRow key={patient.dni} hover>
                   <TableCell>{patient.dni}</TableCell>
                   <TableCell>{patient.nombre}</TableCell>
@@ -378,6 +444,31 @@ export default function PacientesAdminPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {!loading && patients.length > 0 && (
+        <>
+          <TablePagination
+            component="div"
+            count={filteredPatients.length}
+            page={page}
+            onPageChange={(_, nextPage) => setPage(nextPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(event) => {
+              setRowsPerPage(Number(event.target.value));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 25, 50]}
+            labelRowsPerPage="Filas por página"
+          />
+          {hasMore && (
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+              <Button variant="outlined" onClick={() => void fetchPatients(true, patients.length, debouncedSearchTerm)} disabled={loadingMore}>
+                {loadingMore ? 'Cargando...' : 'Cargar más'}
+              </Button>
+            </Box>
+          )}
+        </>
+      )}
 
       <Box sx={{ mt: 2 }}>
         <Button
