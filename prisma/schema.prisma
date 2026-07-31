@@ -24,6 +24,7 @@ model Users {
   informes  Informes[]
   notasTecnico NotasDelTecnico[]
   auditoria Auditoria[]
+  diagnosisCreated Diagnosis[] @relation("DiagnosisCreatedBy")
   perfil    Perfiles @relation(fields: [perfilId], references: [id])
 }
 
@@ -59,6 +60,7 @@ model Diagnosis {
   id                      String   @id @default(uuid())
   sampleCode              String?  @unique
   patientId               String
+  userId                  String?
   diagnosis               String
   material                String
   profesionalSolicitante String
@@ -68,6 +70,7 @@ model Diagnosis {
   eliminado               Boolean  @default(false)
 
   patient                 Patients  @relation(fields: [patientId], references: [dni])
+  creator                 Users?    @relation("DiagnosisCreatedBy", fields: [userId], references: [id])
   informe                 Informes?
   notasTecnico            NotasDelTecnico?
   auditoria               Auditoria[]

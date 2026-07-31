@@ -23,6 +23,7 @@ interface DiagnosisData {
   patientId: string;
   patientNombre: string | null;
   patientApellido: string | null;
+  creatorName: string | null;
   diagnosis: string;
   material: string;
   profesionalSolicitante: string;
@@ -185,6 +186,7 @@ export default function NotasTecnicoPage() {
                 <Typography variant="body2"><strong>Diagnóstico:</strong> {diagnosisData.diagnosis}</Typography>
                 <Typography variant="body2"><strong>Material:</strong> {diagnosisData.material}</Typography>
                 <Typography variant="body2"><strong>Profesional solicitante:</strong> {diagnosisData.profesionalSolicitante}</Typography>
+                <Typography variant="body2"><strong>Creado por:</strong> {diagnosisData.creatorName ?? 'No disponible'}</Typography>
                 <Typography variant="body2"><strong>Biopsias previas:</strong> {diagnosisData.biopsasPrevias ? 'Sí' : 'No'}</Typography>
                 <Typography variant="body2"><strong>Fecha:</strong> {new Date(diagnosisData.createdAt).toLocaleString()}</Typography>
               </Stack>

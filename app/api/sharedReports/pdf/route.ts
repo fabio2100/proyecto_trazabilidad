@@ -14,12 +14,19 @@ interface InformeJoinRow {
   informeId: string;
   informeCuerpo: string;
   informeCreatedAt: Date;
+  informeUserId: string;
+  informeCreatorName: string | null;
   diagnosisId: string;
   diagnosis: string;
   material: string;
   profesionalSolicitante: string;
   biopsasPrevias: boolean;
   diagnosisCreatedAt: Date;
+  notasTecnicoId: string | null;
+  notasTecnicoCuerpo: string | null;
+  notasTecnicoCreatedAt: Date | null;
+  notasTecnicoUserId: string | null;
+  notasTecnicoCreatorName: string | null;
   patientDni: string;
   patientNombre: string;
   patientApellido: string;
@@ -77,8 +84,26 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
   drawLine(`Biopsias previas: ${data.biopsasPrevias ? 'Si' : 'No'}`);
   drawLine(`Fecha diagnostico: ${new Date(data.diagnosisCreatedAt).toLocaleString()}`);
   y -= 8;
+
+  drawLine('Informacion de notas del tecnico', 14, true);
+  if (!data.notasTecnicoId) {
+    drawLine('Sin notas del tecnico.');
+  } else {
+    drawLine(`ID nota: ${data.notasTecnicoId}`);
+    drawLine(`Usuario nota (ID): ${data.notasTecnicoUserId ?? 'No disponible'}`);
+    drawLine(`Usuario nota (Nombre): ${data.notasTecnicoCreatorName ?? 'No disponible'}`);
+    drawLine(
+      `Fecha nota: ${data.notasTecnicoCreatedAt ? new Date(data.notasTecnicoCreatedAt).toLocaleString() : 'No disponible'}`,
+    );
+    drawLine('Cuerpo nota:', 11, true);
+    drawParagraph(data.notasTecnicoCuerpo || '');
+  }
+  y -= 8;
+
   drawLine('Informacion de informe', 14, true);
   drawLine(`ID informe: ${data.informeId}`);
+  drawLine(`Usuario informe (ID): ${data.informeUserId}`);
+  drawLine(`Usuario informe (Nombre): ${data.informeCreatorName ?? 'No disponible'}`);
   drawLine(`Fecha informe: ${new Date(data.informeCreatedAt).toLocaleString()}`);
   drawLine('Cuerpo:', 11, true);
   drawParagraph(data.informeCuerpo);
@@ -134,12 +159,19 @@ export async function POST(request: NextRequest) {
          i.id AS "informeId",
          i.cuerpo AS "informeCuerpo",
          i."createdAt" AS "informeCreatedAt",
+         i."userId" AS "informeUserId",
+         ui.name AS "informeCreatorName",
          d.id AS "diagnosisId",
          d.diagnosis,
          d.material,
          d."profesionalSolicitante",
          d."biopsasPrevias",
          d."createdAt" AS "diagnosisCreatedAt",
+         n.id AS "notasTecnicoId",
+         n.cuerpo AS "notasTecnicoCuerpo",
+         n."createdAt" AS "notasTecnicoCreatedAt",
+         n."userId" AS "notasTecnicoUserId",
+         un.name AS "notasTecnicoCreatorName",
          p.dni AS "patientDni",
          p.nombre AS "patientNombre",
          p.apellido AS "patientApellido",
@@ -148,6 +180,9 @@ export async function POST(request: NextRequest) {
          p.telefono AS "patientTelefono"
        FROM "Informes" i
        INNER JOIN "Diagnosis" d ON d.id = i."diagnosisId"
+       LEFT JOIN "Users" ui ON ui.id = i."userId"
+       LEFT JOIN "NotasDelTecnico" n ON n."diagnosisId" = d.id
+       LEFT JOIN "Users" un ON un.id = n."userId"
        INNER JOIN "Patients" p ON p.dni = d."patientId"
        WHERE i.id = $1
        LIMIT 1`,

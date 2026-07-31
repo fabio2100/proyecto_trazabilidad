@@ -19,6 +19,7 @@ import BiotechIcon from '@mui/icons-material/Biotech';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import PersonalInjuryIcon from '@mui/icons-material/PersonalInjury';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
@@ -149,6 +150,43 @@ export default function AppSidebar() {
                 </ListItemIcon>
                 <ListItemText
                   primary="Crear o editar usuario"
+                  sx={{
+                    opacity: isCollapsed ? 0 : 1,
+                    display: isCollapsed ? 'none' : 'block',
+                    transition: 'opacity 0.2s',
+                    whiteSpace: 'nowrap',
+                  }}
+                />
+              </ListItemButton>
+            );
+          })()}
+          {perfilId === 4 && (() => {
+            const isActive = pathname === '/pacientes-admin';
+            return (
+              <ListItemButton
+                component={Link}
+                href="/pacientes-admin"
+                selected={isActive}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: isCollapsed ? 'center' : 'initial',
+                  px: 2.5,
+                  borderRadius: 2,
+                  mb: 0.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: isCollapsed ? 'auto' : 3,
+                    justifyContent: 'center',
+                    color: isActive ? 'primary.main' : 'inherit',
+                  }}
+                >
+                  <PersonalInjuryIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Crear o editar paciente"
                   sx={{
                     opacity: isCollapsed ? 0 : 1,
                     display: isCollapsed ? 'none' : 'block',

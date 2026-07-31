@@ -19,11 +19,14 @@ import {
 interface DiagnosisData {
   id: string;
   patientId: string;
+  creatorName: string | null;
   diagnosis: string;
   material: string;
   profesionalSolicitante: string;
   biopsasPrevias: boolean;
   createdAt: string;
+  notasTecnicoId: string | null;
+  notasTecnicoCuerpo: string | null;
 }
 
 function InformesContent() {
@@ -152,8 +155,29 @@ function InformesContent() {
                 <Typography variant="body2"><strong>Diagnóstico:</strong> {diagnosisData.diagnosis}</Typography>
                 <Typography variant="body2"><strong>Material:</strong> {diagnosisData.material}</Typography>
                 <Typography variant="body2"><strong>Profesional solicitante:</strong> {diagnosisData.profesionalSolicitante}</Typography>
+                <Typography variant="body2"><strong>Creado por:</strong> {diagnosisData.creatorName ?? 'No disponible'}</Typography>
                 <Typography variant="body2"><strong>Biopsias previas:</strong> {diagnosisData.biopsasPrevias ? 'Sí' : 'No'}</Typography>
                 <Typography variant="body2"><strong>Fecha:</strong> {new Date(diagnosisData.createdAt).toLocaleString()}</Typography>
+              </Stack>
+            </Paper>
+          )}
+
+          {diagnosisData && (
+            <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'background.default' }}>
+              <Stack spacing={1}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Notas del técnico
+                </Typography>
+                {diagnosisData.notasTecnicoId ? (
+                  <>
+                    <Typography variant="body2"><strong>ID nota:</strong> {diagnosisData.notasTecnicoId}</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                      <strong>Contenido:</strong> {diagnosisData.notasTecnicoCuerpo ?? 'Sin contenido'}
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography variant="body2">Sin notas del técnico registradas.</Typography>
+                )}
               </Stack>
             </Paper>
           )}

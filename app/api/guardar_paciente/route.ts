@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { getPool } from '@/lib/db';
+import { verifyToken } from '@/lib/jwt';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -166,6 +167,25 @@ function toArgentinaMidnightDate(value: string): Date {
 
 export async function POST(request: NextRequest) {
   let body: GuardarPacienteBody;
+
+  const token = request.cookies.get('session')?.value;
+  if (!token) {
+    return NextResponse.json(
+      { ok: false, message: 'No autenticado.' },
+      { status: 401 },
+    );
+  }
+
+  let creatorUserId = '';
+  try {
+    const payload = await verifyToken(token);
+    creatorUserId = payload.userId;
+  } catch {
+    return NextResponse.json(
+      { ok: false, message: 'Token inválido.' },
+      { status: 401 },
+    );
+  }
 
   try {
     body = (await request.json()) as GuardarPacienteBody;
@@ -421,17 +441,19 @@ export async function POST(request: NextRequest) {
          id,
          "sampleCode",
          "patientId",
+         "userId",
          diagnosis,
          material,
          "profesionalSolicitante",
          "biopsasPrevias",
          "estudioPrevioFecha"
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         diagnosisId,
         sampleCode,
         dni,
+        creatorUserId,
         diagnostico ?? '',
         material,
         profesionalSolicitante,
