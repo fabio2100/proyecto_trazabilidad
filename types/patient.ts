@@ -24,6 +24,7 @@ export interface PatientFormData {
   telefono: string;
   profesionalSolicitante: string;
   obraSocialFamas: string;
+  tipoMicroscopia: string;
   biopsiasPrevias: string;
   estudioPrevioFecha: string;
   diagnostico: string;
@@ -39,6 +40,7 @@ export const initialPatientFormData: PatientFormData = {
   telefono: '',
   profesionalSolicitante: '',
   obraSocialFamas: '',
+  tipoMicroscopia: '',
   biopsiasPrevias: '',
   estudioPrevioFecha: '',
   diagnostico: '',

@@ -18,6 +18,7 @@ interface GuardarPacienteBody {
   diagnostico: string;
   material: string;
   profesionalSolicitante: string;
+  tipoMicroscopia: string;
   biopsiasPrevias: string;
   estudioPrevioFecha?: string;
 }
@@ -206,6 +207,7 @@ export async function POST(request: NextRequest) {
     diagnostico,
     material,
     profesionalSolicitante,
+    tipoMicroscopia,
     biopsiasPrevias,
     estudioPrevioFecha,
   } = body;
@@ -218,6 +220,7 @@ export async function POST(request: NextRequest) {
     !email ||
     !material ||
     !profesionalSolicitante ||
+    !tipoMicroscopia ||
     !biopsiasPrevias
   ) {
     return NextResponse.json(
@@ -231,6 +234,23 @@ export async function POST(request: NextRequest) {
   if (!Number.isInteger(age) || age <= 0) {
     return NextResponse.json(
       { ok: false, message: 'La edad debe ser un número válido.' },
+      { status: 400 },
+    );
+  }
+
+  const normalizedTipoMicroscopia = tipoMicroscopia
+    .trim()
+    .toUpperCase();
+
+  if (
+    normalizedTipoMicroscopia !== 'ME' &&
+    normalizedTipoMicroscopia !== 'MO'
+  ) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: 'Tipo de microscopía no válido.',
+      },
       { status: 400 },
     );
   }
@@ -430,7 +450,7 @@ export async function POST(request: NextRequest) {
     );
 
     const sampleCode =
-      `LHE-${shortYear}-${formattedMonth}-${formattedSequence}`;
+      `${normalizedTipoMicroscopia}-${shortYear}-${formattedMonth}-${formattedSequence}`;
 
     // 3. Insertar el nuevo diagnóstico.
     const diagnosisId = randomUUID();

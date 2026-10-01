@@ -55,6 +55,7 @@ interface FormErrors {
   telefono?: string;
   profesionalSolicitante?: string;
   obraSocialFamas?: string;
+  tipoMicroscopia?: string;
   biopsiasPrevias?: string;
   estudioPrevioFecha?: string;
   diagnostico?: string;
@@ -70,6 +71,7 @@ interface FormTouched {
   telefono?: boolean;
   profesionalSolicitante?: boolean;
   obraSocialFamas?: boolean;
+  tipoMicroscopia?: boolean;
   biopsiasPrevias?: boolean;
   estudioPrevioFecha?: boolean;
   diagnostico?: boolean;
@@ -335,6 +337,10 @@ export default function PatientForm({
         );
         break;
 
+      case 'tipoMicroscopia':
+        error = validateSelect(value, 'Tipo de Microscopía');
+        break;
+
       case 'biopsiasPrevias':
         error = validateSelect(value, '¿Estudio previo?');
         break;
@@ -546,6 +552,7 @@ export default function PatientForm({
     'telefono',
     'profesionalSolicitante',
     'obraSocialFamas',
+    'tipoMicroscopia',
     'biopsiasPrevias',
   ];
 
@@ -664,6 +671,8 @@ export default function PatientForm({
             formData.profesionalSolicitante,
           obraSocialFamas:
             formData.obraSocialFamas,
+          tipoMicroscopia:
+            formData.tipoMicroscopia,
           biopsiasPrevias:
             formData.biopsiasPrevias,
 
@@ -1015,6 +1024,44 @@ export default function PatientForm({
                     : ''
                 }
               />
+            </Box>
+
+            <Box>
+              <FormControl
+                fullWidth
+                error={showError('tipoMicroscopia')}
+              >
+                <InputLabel id="microscopia-label">
+                  Tipo de Microscopía
+                </InputLabel>
+
+                <Select
+                  labelId="microscopia-label"
+                  id="microscopia-select"
+                  name="tipoMicroscopia"
+                  value={formData.tipoMicroscopia}
+                  onChange={handleSelectChange}
+                  onBlur={handleBlur}
+                  label="Tipo de Microscopía"
+                >
+                  <MenuItem value="">
+                    Seleccione opción
+                  </MenuItem>
+
+                  <MenuItem value="ME">
+                    Microscopía electrónica
+                  </MenuItem>
+                  <MenuItem value="MO">
+                    Microscopía óptica
+                  </MenuItem>
+                </Select>
+
+                {showError('tipoMicroscopia') && (
+                  <FormHelperText>
+                    {errors.tipoMicroscopia}
+                  </FormHelperText>
+                )}
+              </FormControl>
             </Box>
 
             <Box>
