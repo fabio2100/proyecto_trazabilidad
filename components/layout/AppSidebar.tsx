@@ -245,13 +245,70 @@ export default function AppSidebar() {
                   />
                 </ListItemButton>
                 {!isCollapsed && (
-                  <Box sx={{ px: 2.5, pb: 1.5 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.4 }}>
-                      {userName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
-                      {perfilLabel}
-                    </Typography>
+                  <Box
+                    sx={{
+                      px: 2.5,
+                      pb: 1.5,
+                      pt: 0.5,
+                      ml: 0.5,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1.25,
+                        py: 0.75,
+                        borderRadius: 2,
+                        bgcolor: 'rgba(25, 118, 210, 0.08)',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {userName?.charAt(0)?.toUpperCase() || 'U'}
+                      </Box>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            lineHeight: 1.2,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {userName}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: 'block',
+                            lineHeight: 1.2,
+                            textTransform: 'capitalize',
+                          }}
+                        >
+                          {perfilLabel}
+                        </Typography>
+                      </Box>
+                    </Box>
                   </Box>
                 )}
               </>
