@@ -39,8 +39,8 @@ export default function InformesByDiagnosisPage() {
   const { isAuthenticated, isAuthLoading, perfilId } = useAuth();
   const router = useRouter();
   
-  // Perfiles: 3 = medico, 4 = superusuario
-  const hasPermission = perfilId === 3 || perfilId === 4;
+  // Perfiles: 2 = tecnico, 3 = medico, 1 = administrativo, 4 = superusuario
+  const hasPermission = perfilId === 3;
 
   const [informe, setInforme] = useState('');
   const [savingInforme, setSavingInforme] = useState(false);
@@ -73,6 +73,10 @@ export default function InformesByDiagnosisPage() {
   useEffect(() => {
     if (isAuthLoading || !isAuthenticated || !diagnosisId) return;
 
+    if (perfilId === 1 || perfilId === 4) {
+      return;
+    }
+
     if (perfilId === 2) {
       router.replace(`/notas-tecnico/${encodeURIComponent(diagnosisId)}`);
     }
@@ -94,6 +98,14 @@ export default function InformesByDiagnosisPage() {
     );
   }
 
+  if (perfilId === 1 || perfilId === 4) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 6 }}>
+        <Alert severity="error">No tiene permisos para realizar esta acción.</Alert>
+      </Container>
+    );
+  }
+
   if (perfilId === 2) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
@@ -105,7 +117,7 @@ export default function InformesByDiagnosisPage() {
   if (!hasPermission) {
     return (
       <Container maxWidth="sm" sx={{ mt: 6 }}>
-        <Alert severity="error">Acceso denegado para este usuario</Alert>
+        <Alert severity="error">No tiene permisos para realizar esta acción.</Alert>
       </Container>
     );
   }

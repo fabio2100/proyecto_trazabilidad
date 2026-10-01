@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Alert,
@@ -33,7 +33,8 @@ interface DiagnosisData {
 function InformesContent() {
   const searchParams = useSearchParams();
   const diagnosisId = useParams<{diagnosisId: string}>().diagnosisId || searchParams.get('diagnosisId') || '';
-  const { isAuthenticated, isAuthLoading } = useAuth();
+  const { isAuthenticated, isAuthLoading, perfilId } = useAuth();
+  const router = useRouter();
 
   const [informe, setInforme] = useState('');
   const [savingInforme, setSavingInforme] = useState(false);
@@ -44,7 +45,21 @@ function InformesContent() {
   const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !diagnosisId) return;
+    if (isAuthLoading || !isAuthenticated || !diagnosisId) return;
+
+    if (perfilId === 2) {
+      router.replace(`/notas-tecnico/${encodeURIComponent(diagnosisId)}`);
+      return;
+    }
+
+    if (perfilId === 3) {
+      router.replace(`/informes/${encodeURIComponent(diagnosisId)}`);
+      return;
+    }
+
+    if (perfilId === 1 || perfilId === 4) {
+      return;
+    }
 
     setLoadingDiagnosis(true);
     fetch(`/api/getDiagnosis?id=${encodeURIComponent(diagnosisId)}`)
@@ -58,7 +73,7 @@ function InformesContent() {
       })
       .catch(() => setDiagnosisError('Error al obtener el estudio.'))
       .finally(() => setLoadingDiagnosis(false));
-  }, [isAuthenticated, diagnosisId]);
+  }, [isAuthenticated, diagnosisId, isAuthLoading, perfilId, router]);
 
   if (isAuthLoading) {
     return (
@@ -73,6 +88,22 @@ function InformesContent() {
       <Container maxWidth="sm" sx={{ mt: 6 }}>
         <Alert severity="error">Acceso denegado o falta diagnosisId en la URL.</Alert>
       </Container>
+    );
+  }
+
+  if (perfilId === 1 || perfilId === 4) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 6 }}>
+        <Alert severity="error">No tiene permisos para realizar esta acción.</Alert>
+      </Container>
+    );
+  }
+
+  if (perfilId === 2 || perfilId === 3) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
