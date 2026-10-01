@@ -9,8 +9,9 @@ export interface Patient {
   telefono: string;
   profesionalSolicitante: string;
   obraSocialFamas: string;
+  tipoMicroscopia?: string;
   biopsiasPrevias: string;
-  estudioPrevioFecha: string;
+  estudioPrevioFecha?: string | null;
   diagnostico: string;
 }
 

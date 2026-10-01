@@ -18,6 +18,7 @@ const mapPatientToFormData = (patient: Patient): PatientFormData => {
     telefono: patient.telefono,
     profesionalSolicitante: patient.profesionalSolicitante,
     obraSocialFamas: patient.obraSocialFamas,
+    tipoMicroscopia: patient.tipoMicroscopia ?? '',
     biopsiasPrevias: patient.biopsiasPrevias,
     estudioPrevioFecha: patient.estudioPrevioFecha ?? '',
     diagnostico: patient.diagnostico,
