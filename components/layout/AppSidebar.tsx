@@ -9,6 +9,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
+import Typography from '@mui/material/Typography';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/hooks/useSidebar';
@@ -35,9 +36,19 @@ const navItems = [
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isCollapsed, toggleSidebar } = useSidebar();
-  const { perfilId } = useAuth();
+  const { perfilId, userName, perfilTipo } = useAuth();
 
   const canCreateDiagnosis = perfilId === 1 || perfilId === 4;
+  const perfilLabel =
+    perfilTipo === 'administrativo'
+      ? 'Administrativo'
+      : perfilTipo === 'tecnico'
+        ? 'Técnico'
+        : perfilTipo === 'medico'
+          ? 'Médico'
+          : perfilTipo === 'superusuario'
+            ? 'Superusuario'
+            : perfilTipo || 'Perfil';
 
   const visibleNavItems = navItems.filter(
     (item) => item.href !== '/pacientes/nuevo' || canCreateDiagnosis,
@@ -200,38 +211,50 @@ export default function AppSidebar() {
           {(() => {
             const isActive = pathname === '/perfil';
             return (
-              <ListItemButton
-                component={Link}
-                href="/perfil"
-                selected={isActive}
-                sx={{
-                  minHeight: 48,
-                  justifyContent: isCollapsed ? 'center' : 'initial',
-                  px: 2.5,
-                  borderRadius: 2,
-                  mb: 0.5,
-                }}
-              >
-                <ListItemIcon
+              <>
+                <ListItemButton
+                  component={Link}
+                  href="/perfil"
+                  selected={isActive}
                   sx={{
-                    minWidth: 0,
-                    mr: isCollapsed ? 'auto' : 3,
-                    justifyContent: 'center',
-                    color: isActive ? 'primary.main' : 'inherit',
+                    minHeight: 48,
+                    justifyContent: isCollapsed ? 'center' : 'initial',
+                    px: 2.5,
+                    borderRadius: 2,
+                    mb: 0.5,
                   }}
                 >
-                  <AccountCircleIcon />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Mi Cuenta"
-                  sx={{
-                    opacity: isCollapsed ? 0 : 1,
-                    display: isCollapsed ? 'none' : 'block',
-                    transition: 'opacity 0.2s',
-                    whiteSpace: 'nowrap',
-                  }}
-                />
-              </ListItemButton>
+                  <ListItemIcon
+                    sx={{
+                      minWidth: 0,
+                      mr: isCollapsed ? 'auto' : 3,
+                      justifyContent: 'center',
+                      color: isActive ? 'primary.main' : 'inherit',
+                    }}
+                  >
+                    <AccountCircleIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Mi Cuenta"
+                    sx={{
+                      opacity: isCollapsed ? 0 : 1,
+                      display: isCollapsed ? 'none' : 'block',
+                      transition: 'opacity 0.2s',
+                      whiteSpace: 'nowrap',
+                    }}
+                  />
+                </ListItemButton>
+                {!isCollapsed && (
+                  <Box sx={{ px: 2.5, pb: 1.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.4 }}>
+                      {userName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+                      {perfilLabel}
+                    </Typography>
+                  </Box>
+                )}
+              </>
             );
           })()}
         </List>
