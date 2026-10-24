@@ -420,8 +420,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Generar el código de muestra atómico por año y mes.
-    const { year, month } = sampleCodeYearAndMonth;
+    // 2. Generar el código de muestra atómico por año (sin mes en el formato).
+    const { year } = sampleCodeYearAndMonth;
     const shortYear = String(year).slice(-2);
 
     const sequenceResult = await client.query<{
@@ -429,13 +429,13 @@ export async function POST(request: NextRequest) {
     }>(
       `INSERT INTO "DiagnosisSequence"
          ("year", "month", "lastValue")
-       VALUES ($1, $2, 0)
+       VALUES ($1, 0, 0)
        ON CONFLICT ("year", "month")
        DO UPDATE
        SET "lastValue" =
          "DiagnosisSequence"."lastValue" + 1
        RETURNING "lastValue" AS "sequenceNumber"`,
-      [year, month],
+      [year],
     );
 
     const sequenceNumber = Number(
@@ -452,14 +452,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formattedMonth = String(month).padStart(2, '0');
     const formattedSequence = String(sequenceNumber).padStart(
       4,
       '0',
     );
 
     const sampleCode =
-      `${normalizedTipoMicroscopia}-${shortYear}-${formattedMonth}-${formattedSequence}`;
+      `${normalizedTipoMicroscopia}-${shortYear}-${formattedSequence}`;
 
     // 3. Insertar el nuevo diagnóstico.
     const diagnosisId = randomUUID();

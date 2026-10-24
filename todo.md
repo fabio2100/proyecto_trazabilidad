@@ -7,4 +7,3 @@
 * Urgente: Escaner cuando es tecnico, mostrar editar notas del tecnico
 //hoy 
 * estilo informe => adecuar estilo, agregar edad al momento de informe, mostrar fecha nacimiento en estilo adecuado
-* Estilo de codigo, quitar mes

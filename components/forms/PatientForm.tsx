@@ -1187,8 +1187,8 @@ export default function PatientForm({
               {isSubmitting
                 ? 'Guardando...'
                 : mode === 'edit'
-                  ? 'Actualizar Diagnóstico'
-                  : 'Guardar Diagnóstico'}
+                  ? 'Actualizar estudio'
+                  : 'Guardar estudio'}
             </Button>
           </Box>
         </Box>
