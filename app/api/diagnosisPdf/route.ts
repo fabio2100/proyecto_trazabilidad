@@ -13,7 +13,8 @@ interface DiagnosisPdfBody {
     dni: string;
     nombre: string;
     apellido: string;
-    edad: string;
+    fechaNacimiento?: string;
+    edad?: string;
     email: string;
     telefono?: string;
     material: string;

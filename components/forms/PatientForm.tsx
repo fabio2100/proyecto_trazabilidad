@@ -26,7 +26,6 @@ import {
 
 import {
   validateTextField,
-  validateEdad,
   validateDni,
   validateTelefono,
   validateSelect,
@@ -50,7 +49,7 @@ interface FormErrors {
   apellido?: string;
   nombre?: string;
   material?: string;
-  edad?: string;
+  fechaNacimiento?: string;
   dni?: string;
   telefono?: string;
   profesionalSolicitante?: string;
@@ -66,7 +65,7 @@ interface FormTouched {
   apellido?: boolean;
   nombre?: boolean;
   material?: boolean;
-  edad?: boolean;
+  fechaNacimiento?: boolean;
   dni?: boolean;
   telefono?: boolean;
   profesionalSolicitante?: boolean;
@@ -192,6 +191,8 @@ export default function PatientForm({
   const maxPreviousStudyDate =
     getYesterdayArgentinaDateString();
 
+  const maxBirthDate = getArgentinaDateString();
+
   useEffect(() => {
     setFormData(resolvedInitialData);
     setErrors({});
@@ -222,7 +223,7 @@ export default function PatientForm({
         apellido: patientData.apellido,
         nombre: patientData.nombre,
         telefono: patientData.telefono ?? '',
-        edad: patientData.edad,
+        fechaNacimiento: patientData.fechaNacimiento,
       }));
 
       setErrors((prev) => ({
@@ -230,7 +231,7 @@ export default function PatientForm({
         apellido: '',
         nombre: '',
         telefono: '',
-        edad: '',
+        fechaNacimiento: '',
       }));
 
       setEmail(patientData.email);
@@ -265,7 +266,7 @@ export default function PatientForm({
         apellido: patientData.apellido,
         nombre: patientData.nombre,
         telefono: patientData.telefono ?? '',
-        edad: patientData.edad,
+        fechaNacimiento: patientData.fechaNacimiento,
       }));
 
       setErrors((prev) => ({
@@ -274,7 +275,7 @@ export default function PatientForm({
         apellido: '',
         nombre: '',
         telefono: '',
-        edad: '',
+        fechaNacimiento: '',
       }));
 
       setEmail(patientData.email);
@@ -311,8 +312,14 @@ export default function PatientForm({
         error = validateTextField(value, 'Material');
         break;
 
-      case 'edad':
-        error = validateEdad(value);
+      case 'fechaNacimiento':
+        if (!value) {
+          error = 'Fecha de Nacimiento es requerido';
+        } else if (!isValidCalendarDate(value)) {
+          error = 'La fecha de nacimiento no es válida';
+        } else if (value > maxBirthDate) {
+          error = 'La fecha de nacimiento no puede ser futura';
+        }
         break;
 
       case 'dni':
@@ -547,7 +554,7 @@ export default function PatientForm({
     'apellido',
     'nombre',
     'material',
-    'edad',
+    'fechaNacimiento',
     'dni',
     'telefono',
     'profesionalSolicitante',
@@ -662,7 +669,7 @@ export default function PatientForm({
           dni: formData.dni,
           nombre: formData.nombre,
           apellido: formData.apellido,
-          edad: formData.edad,
+          fechaNacimiento: formData.fechaNacimiento,
           email,
           telefono: formData.telefono,
           diagnostico: formData.diagnostico,
@@ -921,16 +928,19 @@ export default function PatientForm({
             <Box>
               <TextField
                 fullWidth
-                label="Edad"
-                name="edad"
-                type="text"
-                value={formData.edad}
+                label="Fecha de Nacimiento"
+                name="fechaNacimiento"
+                type="date"
+                value={formData.fechaNacimiento}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="Edad del paciente"
-                error={showError('edad')}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ max: maxBirthDate }}
+                error={showError('fechaNacimiento')}
                 helperText={
-                  showError('edad') ? errors.edad : ''
+                  showError('fechaNacimiento')
+                    ? errors.fechaNacimiento
+                    : ''
                 }
                 disabled={isFormLocked}
               />

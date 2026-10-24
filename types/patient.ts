@@ -4,7 +4,7 @@ export interface Patient {
   nombre: string;
   email: string;
   material: string;
-  edad: string;
+  fechaNacimiento: string;
   dni: string;
   telefono: string;
   profesionalSolicitante: string;
@@ -20,7 +20,7 @@ export interface PatientFormData {
   nombre: string;
   email: string;
   material: string;
-  edad: string;
+  fechaNacimiento: string;
   dni: string;
   telefono: string;
   profesionalSolicitante: string;
@@ -36,7 +36,7 @@ export const initialPatientFormData: PatientFormData = {
   nombre: '',
   email: '',
   material: '',
-  edad: '',
+  fechaNacimiento: '',
   dni: '',
   telefono: '',
   profesionalSolicitante: '',

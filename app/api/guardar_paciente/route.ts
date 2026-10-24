@@ -12,7 +12,7 @@ interface GuardarPacienteBody {
   dni: string;
   nombre: string;
   apellido: string;
-  edad: string;
+  fechaNacimiento: string;
   email: string;
   telefono?: string;
   diagnostico: string;
@@ -26,7 +26,7 @@ interface GuardarPacienteBody {
 interface PatientRow {
   nombre: string;
   apellido: string;
-  age: number;
+  fechaNacimiento: Date | null;
   email: string;
   telefono: string | null;
 }
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
     dni,
     nombre,
     apellido,
-    edad,
+    fechaNacimiento,
     email,
     telefono,
     diagnostico,
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
     !dni ||
     !nombre ||
     !apellido ||
-    !edad ||
+    !fechaNacimiento ||
     !email ||
     !material ||
     !profesionalSolicitante ||
@@ -229,11 +229,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const age = Number.parseInt(edad, 10);
-
-  if (!Number.isInteger(age) || age <= 0) {
+  if (!isValidCalendarDate(fechaNacimiento)) {
     return NextResponse.json(
-      { ok: false, message: 'La edad debe ser un número válido.' },
+      { ok: false, message: 'La fecha de nacimiento no es válida.' },
+      { status: 400 },
+    );
+  }
+
+  const fechaNacimientoValue = toArgentinaMidnightDate(fechaNacimiento);
+
+  if (Number.isNaN(fechaNacimientoValue.getTime())) {
+    return NextResponse.json(
+      { ok: false, message: 'La fecha de nacimiento no es válida.' },
       { status: 400 },
     );
   }
@@ -358,7 +365,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Manejo de la tabla Patients: upsert manual.
     const patientResult = await client.query<PatientRow>(
-      `SELECT nombre, apellido, age, email, telefono
+      `SELECT nombre, apellido, "fechaNacimiento", email, telefono
        FROM "Patients"
        WHERE dni = $1`,
       [dni],
@@ -370,13 +377,13 @@ export async function POST(request: NextRequest) {
     if (!existing) {
       await client.query(
         `INSERT INTO "Patients"
-         (dni, nombre, apellido, age, email, telefono)
+         (dni, nombre, apellido, "fechaNacimiento", email, telefono)
          VALUES ($1, $2, $3, $4, $5, $6)`,
         [
           dni,
           nombre,
           apellido,
-          age,
+          fechaNacimientoValue,
           email,
           telefonoValue,
         ],
@@ -385,7 +392,9 @@ export async function POST(request: NextRequest) {
       const changed =
         existing.nombre !== nombre ||
         existing.apellido !== apellido ||
-        existing.age !== age ||
+        (existing.fechaNacimiento
+          ? existing.fechaNacimiento.toISOString().slice(0, 10)
+          : '') !== fechaNacimiento ||
         existing.email !== email ||
         (existing.telefono ?? null) !==
           (telefonoValue ?? null);
@@ -395,7 +404,7 @@ export async function POST(request: NextRequest) {
           `UPDATE "Patients"
            SET nombre = $2,
                apellido = $3,
-               age = $4,
+               "fechaNacimiento" = $4,
                email = $5,
                telefono = $6
            WHERE dni = $1`,
@@ -403,7 +412,7 @@ export async function POST(request: NextRequest) {
             dni,
             nombre,
             apellido,
-            age,
+            fechaNacimientoValue,
             email,
             telefonoValue,
           ],

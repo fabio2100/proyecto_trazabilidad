@@ -13,7 +13,7 @@ const mapPatientToFormData = (patient: Patient): PatientFormData => {
     nombre: patient.nombre,
     email: patient.email,
     material: patient.material,
-    edad: patient.edad,
+    fechaNacimiento: patient.fechaNacimiento,
     dni: patient.dni,
     telefono: patient.telefono,
     profesionalSolicitante: patient.profesionalSolicitante,

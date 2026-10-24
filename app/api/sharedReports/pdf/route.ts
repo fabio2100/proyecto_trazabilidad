@@ -34,7 +34,7 @@ interface InformeJoinRow {
   patientNombre: string;
   patientApellido: string;
   patientEmail: string;
-  patientAge: number;
+  patientFechaNacimiento: string | null;
   patientTelefono: string | null;
 }
 
@@ -143,7 +143,7 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
   drawLine(`DNI: ${data.patientDni}`);
   drawLine(`Nombre: ${data.patientNombre} ${data.patientApellido}`);
   drawLine(`Email: ${data.patientEmail}`);
-  drawLine(`Edad: ${data.patientAge}`);
+  drawLine(`Fecha de nacimiento: ${data.patientFechaNacimiento ?? 'Sin dato'}`);
   drawLine(`Telefono: ${data.patientTelefono ?? 'Sin dato'}`);
   y -= 8;
   drawLine('Informacion de diagnostico', 14, true);
@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
          p.nombre AS "patientNombre",
          p.apellido AS "patientApellido",
          p.email AS "patientEmail",
-         p.age AS "patientAge",
+         TO_CHAR(p."fechaNacimiento", 'YYYY-MM-DD') AS "patientFechaNacimiento",
          p.telefono AS "patientTelefono"
        FROM "Informes" i
        INNER JOIN "Diagnosis" d ON d.id = i."diagnosisId"

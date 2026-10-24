@@ -353,7 +353,7 @@ export default function DiagnosesPage() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper elevation={2} sx={{ p: 3 }}>
         <Typography variant="h2" component="h2" gutterBottom>
-          Diagnósticos
+          Estudios
         </Typography>
 
         <TextField
@@ -387,7 +387,7 @@ export default function DiagnosesPage() {
 
         {!isLoading && !errorMessage && diagnoses.length === 0 && (
           <Typography variant="body1" sx={{ mt: 2 }}>
-            No hay diagnósticos cargados.
+            No hay estudios cargados.
           </Typography>
         )}
 

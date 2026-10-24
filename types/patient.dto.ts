@@ -3,7 +3,7 @@ export interface CreatePatientDto {
   nombre: string;
   email: string;
   material: string;
-  edad: string;
+  fechaNacimiento: string;
   dni: string;
   telefono: string;
   profesionalSolicitante: string;
@@ -18,7 +18,7 @@ export interface PatientDataByDniDto {
   apellido: string;
   nombre: string;
   email: string;
-  edad: string;
+  fechaNacimiento: string;
   telefono?: string;
 }
 
@@ -26,7 +26,7 @@ export interface GuardarPacienteDto {
   dni: string;
   nombre: string;
   apellido: string;
-  edad: string;
+  fechaNacimiento: string;
   email: string;
   telefono: string;
   diagnostico: string;

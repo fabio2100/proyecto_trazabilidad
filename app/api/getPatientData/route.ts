@@ -9,7 +9,7 @@ interface PatientLookupRow {
   apellido: string;
   nombre: string;
   email: string;
-  age: number;
+  fechaNacimiento: Date | null;
   telefono: string | null;
 }
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const whereClause = dni ? 'dni = $1' : 'email = $1';
     const lookupValue = dni || email;
     const result = await pool.query<PatientLookupRow>(
-      `SELECT dni, apellido, nombre, email, age, telefono FROM "Patients" WHERE ${whereClause} LIMIT 1`,
+      `SELECT dni, apellido, nombre, email, "fechaNacimiento", telefono FROM "Patients" WHERE ${whereClause} LIMIT 1`,
       [lookupValue],
     );
 
@@ -62,7 +62,9 @@ export async function GET(request: NextRequest) {
         apellido: patient.apellido,
         nombre: patient.nombre,
         email: patient.email,
-        edad: String(patient.age),
+        fechaNacimiento: patient.fechaNacimiento
+          ? patient.fechaNacimiento.toISOString().slice(0, 10)
+          : '',
         telefono: patient.telefono ?? '',
       },
     });

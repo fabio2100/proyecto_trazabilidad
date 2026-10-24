@@ -31,7 +31,7 @@ interface PatientRow {
   dni: string;
   nombre: string;
   apellido: string;
-  age: number;
+  fechaNacimiento: string | null;
   email: string;
   telefono: string | null;
   createdAt: string;
@@ -41,7 +41,7 @@ interface PatientFormState {
   dni: string;
   nombre: string;
   apellido: string;
-  age: string;
+  fechaNacimiento: string;
   email: string;
   telefono: string;
 }
@@ -58,7 +58,7 @@ const emptyCreate: PatientFormState = {
   dni: '',
   nombre: '',
   apellido: '',
-  age: '',
+  fechaNacimiento: '',
   email: '',
   telefono: '',
 };
@@ -76,7 +76,7 @@ export default function PacientesAdminPage() {
   const [editForm, setEditForm] = useState<Omit<PatientFormState, 'dni'>>({
     nombre: '',
     apellido: '',
-    age: '',
+    fechaNacimiento: '',
     email: '',
     telefono: '',
   });
@@ -170,7 +170,7 @@ export default function PacientesAdminPage() {
     setEditForm({
       nombre: patient.nombre,
       apellido: patient.apellido,
-      age: String(patient.age),
+      fechaNacimiento: patient.fechaNacimiento?.slice(0, 10) ?? '',
       email: patient.email,
       telefono: patient.telefono ?? '',
     });
@@ -188,20 +188,20 @@ export default function PacientesAdminPage() {
   };
 
   const validatePatientForm = (form: PatientFormState | Omit<PatientFormState, 'dni'>): string | null => {
-    const ageNumber = Number((form as { age: string }).age);
+    const fechaNacimiento = (form as { fechaNacimiento: string }).fechaNacimiento.trim();
     const email = (form as { email: string }).email.trim();
 
     if (
       !(form as { nombre: string }).nombre.trim() ||
       !(form as { apellido: string }).apellido.trim() ||
-      !(form as { age: string }).age.trim() ||
+      !fechaNacimiento ||
       !email
     ) {
-      return 'Nombre, apellido, edad y email son requeridos.';
+      return 'Nombre, apellido, fecha de nacimiento y email son requeridos.';
     }
 
-    if (!Number.isInteger(ageNumber) || ageNumber <= 0) {
-      return 'La edad debe ser un número válido.';
+    if (!/^(\d{4})-(\d{2})-(\d{2})$/.test(fechaNacimiento)) {
+      return 'Fecha de nacimiento inválida.';
     }
 
     if (!email.includes('@')) {
@@ -237,7 +237,7 @@ export default function PacientesAdminPage() {
           dni: createForm.dni.trim(),
           nombre: createForm.nombre.trim(),
           apellido: createForm.apellido.trim(),
-          age: Number(createForm.age),
+          fechaNacimiento: createForm.fechaNacimiento,
           email: createForm.email.trim().toLowerCase(),
           telefono: createForm.telefono.trim() || null,
         }),
@@ -278,7 +278,7 @@ export default function PacientesAdminPage() {
           dni: editDni,
           nombre: editForm.nombre.trim(),
           apellido: editForm.apellido.trim(),
-          age: Number(editForm.age),
+          fechaNacimiento: editForm.fechaNacimiento,
           email: editForm.email.trim().toLowerCase(),
           telefono: editForm.telefono.trim() || null,
         }),
@@ -399,7 +399,7 @@ export default function PacientesAdminPage() {
               <TableCell>DNI</TableCell>
               <TableCell>Nombre</TableCell>
               <TableCell>Apellido</TableCell>
-              <TableCell>Edad</TableCell>
+              <TableCell>Fecha de nacimiento</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Teléfono</TableCell>
               <TableCell>Creado</TableCell>
@@ -421,7 +421,7 @@ export default function PacientesAdminPage() {
                   <TableCell>{patient.dni}</TableCell>
                   <TableCell>{patient.nombre}</TableCell>
                   <TableCell>{patient.apellido}</TableCell>
-                  <TableCell>{patient.age}</TableCell>
+                  <TableCell>{patient.fechaNacimiento ? new Date(patient.fechaNacimiento).toLocaleDateString('es-AR') : '—'}</TableCell>
                   <TableCell>{patient.email}</TableCell>
                   <TableCell>{patient.telefono ?? '—'}</TableCell>
                   <TableCell>{new Date(patient.createdAt).toLocaleDateString('es-AR')}</TableCell>
@@ -505,10 +505,11 @@ export default function PacientesAdminPage() {
               required
             />
             <TextField
-              label="Edad"
-              type="number"
-              value={editForm.age}
-              onChange={(e) => handleEditChange('age', e.target.value)}
+              label="Fecha de Nacimiento"
+              type="date"
+              value={editForm.fechaNacimiento}
+              onChange={(e) => handleEditChange('fechaNacimiento', e.target.value)}
+              InputLabelProps={{ shrink: true }}
               fullWidth
               required
             />
@@ -564,10 +565,11 @@ export default function PacientesAdminPage() {
               required
             />
             <TextField
-              label="Edad"
-              type="number"
-              value={createForm.age}
-              onChange={(e) => handleCreateChange('age', e.target.value)}
+              label="Fecha de Nacimiento"
+              type="date"
+              value={createForm.fechaNacimiento}
+              onChange={(e) => handleCreateChange('fechaNacimiento', e.target.value)}
+              InputLabelProps={{ shrink: true }}
               fullWidth
               required
             />

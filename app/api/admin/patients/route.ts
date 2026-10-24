@@ -12,7 +12,7 @@ interface PatientRow {
   dni: string;
   nombre: string;
   apellido: string;
-  age: number;
+  fechaNacimiento: Date | null;
   email: string;
   telefono: string | null;
   createdAt: Date;
@@ -22,7 +22,7 @@ interface PatientPayload {
   dni?: string;
   nombre?: string;
   apellido?: string;
-  age?: number;
+  fechaNacimiento?: string;
   email?: string;
   telefono?: string | null;
 }
@@ -58,11 +58,26 @@ function isValidEmail(value: string): boolean {
   return value.includes('@');
 }
 
-function parsePositiveAge(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
-    return null;
+function isValidCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return false;
   }
-  return value;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function toArgentinaMidnightDate(value: string): Date {
+  return new Date(`${value}T00:00:00-03:00`);
 }
 
 export async function GET(request: NextRequest) {
@@ -123,7 +138,7 @@ export async function GET(request: NextRequest) {
         OR LOWER(COALESCE(apellido, '')) LIKE ${searchParam}
         OR LOWER(COALESCE(email, '')) LIKE ${searchParam}
         OR LOWER(COALESCE(telefono, '')) LIKE ${searchParam}
-        OR CAST(age AS TEXT) LIKE ${searchParam}
+        OR TO_CHAR("fechaNacimiento", 'YYYY-MM-DD') LIKE ${searchParam}
       )`;
   }
 
@@ -132,7 +147,7 @@ export async function GET(request: NextRequest) {
   const offsetParam = `$${values.length}`;
 
   const result = await pool.query<PatientRow>(`
-    SELECT dni, nombre, apellido, age, email, telefono, "createdAt"
+    SELECT dni, nombre, apellido, "fechaNacimiento", email, telefono, "createdAt"
     FROM "Patients"
     ${whereClause}
     ORDER BY "createdAt" DESC
@@ -161,14 +176,20 @@ export async function POST(request: NextRequest) {
   const apellido = body.apellido?.trim();
   const email = body.email?.trim().toLowerCase();
   const telefono = body.telefono?.trim() || null;
-  const age = parsePositiveAge(body.age);
+  const fechaNacimiento = body.fechaNacimiento?.trim();
 
-  if (!dni || !nombre || !apellido || !email || age === null) {
+  if (!dni || !nombre || !apellido || !email || !fechaNacimiento) {
     return NextResponse.json(
-      { success: false, message: 'DNI, nombre, apellido, edad y email son requeridos.' },
+      { success: false, message: 'DNI, nombre, apellido, fecha de nacimiento y email son requeridos.' },
       { status: 400 },
     );
   }
+
+  if (!isValidCalendarDate(fechaNacimiento)) {
+    return NextResponse.json({ success: false, message: 'Fecha de nacimiento inválida.' }, { status: 400 });
+  }
+
+  const fechaNacimientoValue = toArgentinaMidnightDate(fechaNacimiento);
 
   if (!isValidEmail(email)) {
     return NextResponse.json({ success: false, message: 'Email inválido.' }, { status: 400 });
@@ -193,9 +214,9 @@ export async function POST(request: NextRequest) {
   }
 
   await pool.query(
-    `INSERT INTO "Patients" (dni, nombre, apellido, age, email, telefono)
+    `INSERT INTO "Patients" (dni, nombre, apellido, "fechaNacimiento", email, telefono)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    [dni, nombre, apellido, age, email, telefono],
+    [dni, nombre, apellido, fechaNacimientoValue, email, telefono],
   );
 
   return NextResponse.json(
@@ -234,13 +255,13 @@ export async function PUT(request: NextRequest) {
     values.push(body.apellido.trim());
   }
 
-  if (body.age !== undefined) {
-    const age = parsePositiveAge(body.age);
-    if (age === null) {
-      return NextResponse.json({ success: false, message: 'La edad debe ser un número válido.' }, { status: 400 });
+  if (body.fechaNacimiento !== undefined) {
+    const fechaNacimiento = body.fechaNacimiento.trim();
+    if (!isValidCalendarDate(fechaNacimiento)) {
+      return NextResponse.json({ success: false, message: 'Fecha de nacimiento inválida.' }, { status: 400 });
     }
-    fields.push(`age = $${idx++}`);
-    values.push(age);
+    fields.push(`"fechaNacimiento" = $${idx++}`);
+    values.push(toArgentinaMidnightDate(fechaNacimiento));
   }
 
   if (body.email !== undefined) {

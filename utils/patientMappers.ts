@@ -9,7 +9,7 @@ export const mapPatientFormDataToCreateDto = (
     nombre: data.nombre,
     email: data.email,
     material: data.material,
-    edad: data.edad,
+    fechaNacimiento: data.fechaNacimiento,
     dni: data.dni,
     telefono: data.telefono,
     profesionalSolicitante: data.profesionalSolicitante,

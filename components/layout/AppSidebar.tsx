@@ -29,7 +29,7 @@ const collapsedDrawerWidth = 64;
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'Diagnósticos', href: '/pacientes', icon: <BiotechIcon /> },
+  { label: 'Estudios', href: '/pacientes', icon: <BiotechIcon /> },
   { label: 'Nuevo estudio', href: '/pacientes/nuevo', icon: <AddCircleOutlineIcon /> },
 ];
 
