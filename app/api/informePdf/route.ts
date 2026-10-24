@@ -178,26 +178,22 @@ async function toPdfBuffer(data: InformeJoinRow, onlyDiagnosis = false) {
   drawLine(`Fecha diagnostico: ${new Date(data.diagnosisCreatedAt).toLocaleString()}`);
   y -= 8;
 
-  if (!onlyDiagnosis || data.notasTecnicoId) {
+  if (onlyDiagnosis && data.notasTecnicoId) {
     drawLine('Informacion de notas del tecnico', 14, true);
-    if (!data.notasTecnicoId) {
-      drawLine('Sin notas del tecnico.');
-    } else {
-      drawLine(`ID nota: ${data.notasTecnicoId}`);
-      drawLine(`Creado por: ${data.notasTecnicoCreatorName ?? 'No disponible'}`);
-      drawLine(
-        `Fecha nota: ${data.notasTecnicoCreatedAt ? new Date(data.notasTecnicoCreatedAt).toLocaleString() : 'No disponible'}`,
-      );
-      drawLine('Cuerpo nota:', 11, true);
-      drawParagraph(data.notasTecnicoCuerpo || '');
+    drawLine(`ID nota: ${data.notasTecnicoId}`);
+    drawLine(`Creado por: ${data.notasTecnicoCreatorName ?? 'No disponible'}`);
+    drawLine(
+      `Fecha nota: ${data.notasTecnicoCreatedAt ? new Date(data.notasTecnicoCreatedAt).toLocaleString() : 'No disponible'}`,
+    );
+    drawLine('Cuerpo nota:', 11, true);
+    drawParagraph(data.notasTecnicoCuerpo || '');
 
-      drawLine('Imagenes de la nota:', 11, true);
-      if (!data.notasTecnicoImagenes || data.notasTecnicoImagenes.length === 0) {
-        drawLine('Sin imagenes adjuntas.');
-      } else {
-        for (const imageUrl of data.notasTecnicoImagenes) {
-          await drawImageFromUrl(imageUrl);
-        }
+    drawLine('Imagenes de la nota:', 11, true);
+    if (!data.notasTecnicoImagenes || data.notasTecnicoImagenes.length === 0) {
+      drawLine('Sin imagenes adjuntas.');
+    } else {
+      for (const imageUrl of data.notasTecnicoImagenes) {
+        await drawImageFromUrl(imageUrl);
       }
     }
     y -= 8;

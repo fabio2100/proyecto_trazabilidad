@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { getPool } from '@/lib/db';
-import { readFile } from 'fs/promises';
-import path from 'path';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -80,63 +78,6 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
     if (line) drawLine(line, size, false);
   };
 
-  const tryReadImageBytes = async (url: string): Promise<Buffer | null> => {
-    try {
-      if (url.startsWith('/')) {
-        const filePath = path.join(process.cwd(), 'public', url.replace(/^\//, ''));
-        return await readFile(filePath);
-      }
-
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        const res = await fetch(url);
-        if (!res.ok) return null;
-        const arr = await res.arrayBuffer();
-        return Buffer.from(arr);
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  const drawImageFromUrl = async (url: string) => {
-    const lowerUrl = url.toLowerCase();
-    const isPng = lowerUrl.endsWith('.png');
-    const isJpg = lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg');
-
-    if (!isPng && !isJpg) {
-      drawLine(`Imagen no embebible en PDF (solo JPG/PNG): ${url}`);
-      return;
-    }
-
-    const bytes = await tryReadImageBytes(url);
-    if (!bytes) {
-      drawLine(`No se pudo cargar imagen: ${url}`);
-      return;
-    }
-
-    try {
-      const image = isPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-
-      const scale = Math.min(contentWidth / image.width, 220 / image.height);
-      const width = image.width * scale;
-      const height = image.height * scale;
-
-      ensureSpace(height + 20);
-      page.drawImage(image, {
-        x: left,
-        y: y - height,
-        width,
-        height,
-      });
-      y -= height + 8;
-      drawLine(`Imagen: ${url}`, 9, false);
-    } catch {
-      drawLine(`No se pudo procesar imagen: ${url}`);
-    }
-  };
-
   drawLine('Informe Medico', 20, true);
   y -= 8;
   drawLine('Informacion de paciente', 14, true);
@@ -153,30 +94,6 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
   drawLine(`Profesional solicitante: ${data.profesionalSolicitante}`);
   drawLine(`Biopsias previas: ${data.biopsasPrevias ? 'Si' : 'No'}`);
   drawLine(`Fecha diagnostico: ${new Date(data.diagnosisCreatedAt).toLocaleString()}`);
-  y -= 8;
-
-  drawLine('Informacion de notas del tecnico', 14, true);
-  if (!data.notasTecnicoId) {
-    drawLine('Sin notas del tecnico.');
-  } else {
-    drawLine(`ID nota: ${data.notasTecnicoId}`);
-    drawLine(`Usuario nota (ID): ${data.notasTecnicoUserId ?? 'No disponible'}`);
-    drawLine(`Usuario nota (Nombre): ${data.notasTecnicoCreatorName ?? 'No disponible'}`);
-    drawLine(
-      `Fecha nota: ${data.notasTecnicoCreatedAt ? new Date(data.notasTecnicoCreatedAt).toLocaleString() : 'No disponible'}`,
-    );
-    drawLine('Cuerpo nota:', 11, true);
-    drawParagraph(data.notasTecnicoCuerpo || '');
-
-    drawLine('Imagenes de la nota:', 11, true);
-    if (!data.notasTecnicoImagenes || data.notasTecnicoImagenes.length === 0) {
-      drawLine('Sin imagenes adjuntas.');
-    } else {
-      for (const imageUrl of data.notasTecnicoImagenes) {
-        await drawImageFromUrl(imageUrl);
-      }
-    }
-  }
   y -= 8;
 
   drawLine('Informacion de informe', 14, true);
