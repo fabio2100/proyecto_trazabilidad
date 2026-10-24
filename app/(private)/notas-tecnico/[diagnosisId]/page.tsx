@@ -38,8 +38,8 @@ export default function NotasTecnicoPage() {
   const { isAuthenticated, isAuthLoading, perfilId } = useAuth();
   const router = useRouter();
 
-  // Perfiles: 2 = tecnico, 4 = superusuario
-  const hasPermission = perfilId === 2 || perfilId === 4;
+  // Perfil habilitado: 2 = tecnico
+  const hasPermission = perfilId === 2;
 
   const [notas, setNotas] = useState('');
   const [savingNotas, setSavingNotas] = useState(false);
@@ -93,7 +93,7 @@ export default function NotasTecnicoPage() {
   if (!hasPermission) {
     return (
       <Container maxWidth="sm" sx={{ mt: 6 }}>
-        <Alert severity="error">Acceso denegado para este usuario</Alert>
+        <Alert severity="error">No tiene permisos para realizar esta acción.</Alert>
       </Container>
     );
   }
@@ -240,13 +240,13 @@ export default function NotasTecnicoPage() {
             <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'background.default' }}>
               <Stack spacing={1}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Datos del paciente y diagnóstico
+                  Datos del paciente y estudio
                 </Typography>
                 {pacienteNombre && (
                   <Typography variant="body2"><strong>Paciente:</strong> {pacienteNombre}</Typography>
                 )}
                 <Typography variant="body2"><strong>DNI:</strong> {diagnosisData.patientId}</Typography>
-                <Typography variant="body2"><strong>Diagnóstico:</strong> {diagnosisData.diagnosis}</Typography>
+                <Typography variant="body2"><strong>Observaciones:</strong> {diagnosisData.diagnosis}</Typography>
                 <Typography variant="body2"><strong>Material:</strong> {diagnosisData.material}</Typography>
                 <Typography variant="body2"><strong>Profesional solicitante:</strong> {diagnosisData.profesionalSolicitante}</Typography>
                 <Typography variant="body2"><strong>Creado por:</strong> {diagnosisData.creatorName ?? 'No disponible'}</Typography>

@@ -9,6 +9,9 @@ interface DiagnosisRow {
   patientId: string;
   patientNombre: string | null;
   patientApellido: string | null;
+  patientEmail: string | null;
+  patientTelefono: string | null;
+  patientFechaNacimiento: Date | null;
   creatorName: string | null;
   diagnosis: string;
   material: string;
@@ -36,7 +39,8 @@ export async function GET(request: NextRequest) {
     const pool = getPool();
     const result = await pool.query<DiagnosisRow>(
       `SELECT d.id, d."patientId",
-              p.nombre AS "patientNombre", p.apellido AS "patientApellido",
+          p.nombre AS "patientNombre", p.apellido AS "patientApellido",
+          p.email AS "patientEmail", p.telefono AS "patientTelefono", p."fechaNacimiento" AS "patientFechaNacimiento",
         u.name AS "creatorName",
               d.diagnosis, d.material, d."profesionalSolicitante", d."biopsasPrevias", d."createdAt",
               i.id AS "informeId", i.cuerpo AS "informeCuerpo",

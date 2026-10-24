@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Alert,
   Container,
@@ -16,17 +16,27 @@ import { useAuth } from '@/hooks/useAuth';
 function LoginContent() {
   const { isAuthenticated, isAuthLoading, login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
+  const requestedRedirectTo = searchParams.get('redirectTo');
+
+  const redirectTo =
+    requestedRedirectTo &&
+    requestedRedirectTo.startsWith('/') &&
+    !requestedRedirectTo.startsWith('//')
+      ? requestedRedirectTo
+      : '/dashboard';
+
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     }
-  }, [isAuthenticated, isAuthLoading, router]);
+  }, [isAuthenticated, isAuthLoading, redirectTo, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

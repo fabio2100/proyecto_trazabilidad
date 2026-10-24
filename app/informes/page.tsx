@@ -19,6 +19,11 @@ import {
 interface DiagnosisData {
   id: string;
   patientId: string;
+  patientNombre: string | null;
+  patientApellido: string | null;
+  patientEmail: string | null;
+  patientTelefono: string | null;
+  patientFechaNacimiento: string | null;
   creatorName: string | null;
   diagnosis: string;
   material: string;
@@ -95,6 +100,11 @@ function InformesContent() {
     return (
       <Container maxWidth="sm" sx={{ mt: 6 }}>
         <Alert severity="error">No tiene permisos para realizar esta acción.</Alert>
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="contained" onClick={() => router.push('/dashboard')}>
+            Ir a inicio
+          </Button>
+        </Box>
       </Container>
     );
   }
@@ -182,9 +192,25 @@ function InformesContent() {
             <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'background.default' }}>
               <Stack spacing={1}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Datos del diagnóstico
+                  Datos del paciente
                 </Typography>
-                <Typography variant="body2"><strong>Diagnóstico:</strong> {diagnosisData.diagnosis}</Typography>
+                <Typography variant="body2"><strong>DNI:</strong> {diagnosisData.patientId}</Typography>
+                <Typography variant="body2"><strong>Nombre:</strong> {diagnosisData.patientNombre ?? 'No disponible'}</Typography>
+                <Typography variant="body2"><strong>Apellido:</strong> {diagnosisData.patientApellido ?? 'No disponible'}</Typography>
+                <Typography variant="body2"><strong>Email:</strong> {diagnosisData.patientEmail ?? 'No disponible'}</Typography>
+                <Typography variant="body2"><strong>Teléfono:</strong> {diagnosisData.patientTelefono ?? 'No disponible'}</Typography>
+                <Typography variant="body2"><strong>Fecha de nacimiento:</strong> {diagnosisData.patientFechaNacimiento ? new Date(diagnosisData.patientFechaNacimiento).toLocaleDateString('es-AR') : 'No disponible'}</Typography>
+              </Stack>
+            </Paper>
+          )}
+
+          {diagnosisData && (
+            <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'background.default' }}>
+              <Stack spacing={1}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Datos del estudio
+                </Typography>
+                <Typography variant="body2"><strong>Estudio:</strong> {diagnosisData.diagnosis}</Typography>
                 <Typography variant="body2"><strong>Material:</strong> {diagnosisData.material}</Typography>
                 <Typography variant="body2"><strong>Profesional solicitante:</strong> {diagnosisData.profesionalSolicitante}</Typography>
                 <Typography variant="body2"><strong>Creado por:</strong> {diagnosisData.creatorName ?? 'No disponible'}</Typography>
