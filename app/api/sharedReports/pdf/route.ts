@@ -21,6 +21,7 @@ interface InformeJoinRow {
   material: string;
   profesionalSolicitante: string;
   biopsasPrevias: boolean;
+  estudioPrevioFecha: Date | null;
   diagnosisCreatedAt: Date;
   notasTecnicoId: string | null;
   notasTecnicoCuerpo: string | null;
@@ -36,6 +37,38 @@ interface InformeJoinRow {
   patientTelefono: string | null;
 }
 
+function formatDateOnly(value: Date | string | null | undefined) {
+  if (!value) return 'No disponible';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No disponible';
+  return date.toLocaleDateString('es-AR');
+}
+
+function calculateAgeAtStudy(
+  birthDateRaw: string | null,
+  studyDateRaw: Date | string | null | undefined,
+) {
+  if (!birthDateRaw || !studyDateRaw) return 'No disponible';
+
+  const birthDate = new Date(`${birthDateRaw}T00:00:00`);
+  const studyDate = studyDateRaw instanceof Date ? studyDateRaw : new Date(studyDateRaw);
+
+  if (Number.isNaN(birthDate.getTime()) || Number.isNaN(studyDate.getTime())) {
+    return 'No disponible';
+  }
+
+  let age = studyDate.getFullYear() - birthDate.getFullYear();
+  const monthDiff = studyDate.getMonth() - birthDate.getMonth();
+  const dayDiff = studyDate.getDate() - birthDate.getDate();
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age -= 1;
+  }
+
+  if (age < 0) return 'No disponible';
+  return `${age} años`;
+}
+
 async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.setTitle(`Informe ${data.informeId}`);
@@ -49,6 +82,7 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
   let y = page.getHeight() - 50;
   const left = 50;
   const contentWidth = page.getWidth() - 100;
+  const right = left + contentWidth;
 
   const ensureSpace = (requiredHeight: number) => {
     if (y - requiredHeight < 40) {
@@ -61,6 +95,26 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
     ensureSpace(size + 10);
     page.drawText(text, { x: left, y, size, font: bold ? fontBold : fontRegular });
     y -= size + 6;
+  };
+
+  const drawCenteredLine = (text: string, size = 11, bold = false) => {
+    ensureSpace(size + 10);
+    const font = bold ? fontBold : fontRegular;
+    const textWidth = font.widthOfTextAtSize(text, size);
+    const x = left + (contentWidth - textWidth) / 2;
+    page.drawText(text, { x, y, size, font });
+    y -= size + 6;
+  };
+
+  const drawHorizontalRule = (spacingTop = 6, spacingBottom = 8) => {
+    y -= spacingTop;
+    ensureSpace(8);
+    page.drawLine({
+      start: { x: left, y },
+      end: { x: right, y },
+      thickness: 1,
+    });
+    y -= spacingBottom;
   };
 
   const drawParagraph = (text: string, size = 11) => {
@@ -78,30 +132,28 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
     if (line) drawLine(line, size, false);
   };
 
-  drawLine('Informe Medico', 20, true);
-  y -= 8;
-  drawLine('Informacion de paciente', 14, true);
-  drawLine(`DNI: ${data.patientDni}`);
-  drawLine(`Nombre: ${data.patientNombre} ${data.patientApellido}`);
-  drawLine(`Email: ${data.patientEmail}`);
-  drawLine(`Fecha de nacimiento: ${data.patientFechaNacimiento ?? 'Sin dato'}`);
-  drawLine(`Telefono: ${data.patientTelefono ?? 'Sin dato'}`);
-  y -= 8;
-  drawLine('Informacion de diagnostico', 14, true);
-  drawLine(`ID diagnostico: ${data.diagnosisId}`);
-  drawLine(`Diagnostico: ${data.diagnosis}`);
-  drawLine(`Material: ${data.material}`);
-  drawLine(`Profesional solicitante: ${data.profesionalSolicitante}`);
-  drawLine(`Biopsias previas: ${data.biopsasPrevias ? 'Si' : 'No'}`);
-  drawLine(`Fecha diagnostico: ${new Date(data.diagnosisCreatedAt).toLocaleString()}`);
-  y -= 8;
+  const fechaEstudio = data.estudioPrevioFecha ?? data.diagnosisCreatedAt;
 
-  drawLine('Informacion de informe', 14, true);
-  drawLine(`ID informe: ${data.informeId}`);
-  drawLine(`Usuario informe (ID): ${data.informeUserId}`);
-  drawLine(`Usuario informe (Nombre): ${data.informeCreatorName ?? 'No disponible'}`);
-  drawLine(`Fecha informe: ${new Date(data.informeCreatedAt).toLocaleString()}`);
-  drawLine('Cuerpo:', 11, true);
+  drawHorizontalRule(0, 26);
+  drawCenteredLine('INFORME HISTOPATOLOGICO', 18, true);
+  drawHorizontalRule(4, 18);
+
+  drawLine(`Nombre y apellido: ${data.patientNombre} ${data.patientApellido}`);
+  drawLine(`DNI: ${data.patientDni}`);
+  drawLine(`Email: ${data.patientEmail}`);
+  drawLine(`Fecha de Nacimiento: ${formatDateOnly(data.patientFechaNacimiento)}`);
+  drawLine(`Edad: ${calculateAgeAtStudy(data.patientFechaNacimiento, fechaEstudio)}`);
+  drawLine(`Fecha de estudio: ${formatDateOnly(fechaEstudio)}`);
+  drawLine(`Medico solicitante: ${data.profesionalSolicitante}`);
+  drawLine(`Material: ${data.material}`);
+  drawLine(`Biopsias previas: ${data.biopsasPrevias ? 'Si' : 'No'}`);
+  drawLine(`Observaciones: ${data.diagnosis}`);
+  y -= 4;
+
+  drawHorizontalRule(6, 16);
+  drawLine(`Fecha del informe: ${formatDateOnly(data.informeCreatedAt)}`);
+  drawLine(`Creado por: ${data.informeCreatorName ?? 'No disponible'}`);
+  y -= 2;
   drawParagraph(data.informeCuerpo);
 
   const bytes = await pdfDoc.save();
@@ -162,6 +214,7 @@ export async function POST(request: NextRequest) {
          d.material,
          d."profesionalSolicitante",
          d."biopsasPrevias",
+         d."estudioPrevioFecha",
          d."createdAt" AS "diagnosisCreatedAt",
          n.id AS "notasTecnicoId",
          n.cuerpo AS "notasTecnicoCuerpo",

@@ -23,6 +23,8 @@ import {
   TableSortLabel,
   InputAdornment,
   TablePagination,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { getDiagnoses, deleteDiagnosisReal } from '@/services/diagnosisService';
 import { Diagnosis } from '@/services/diagnosisService';
@@ -30,6 +32,7 @@ import { useAuth } from '@/hooks/useAuth';
 import SearchIcon from '@mui/icons-material/Search';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 export default function DiagnosesPage() {
   const PAGE_FETCH_SIZE = 25;
@@ -336,6 +339,21 @@ export default function DiagnosesPage() {
     }
   };
 
+  const handleCopyValue = async (value: string, fieldLabel: 'link' | 'contrasena') => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyFeedback(
+        fieldLabel === 'link'
+          ? 'Link copiado al portapapeles.'
+          : 'Contraseña copiada al portapapeles.',
+      );
+      setTimeout(() => setCopyFeedback(''), 3000);
+    } catch (error) {
+      console.error('Error copiando al portapapeles:', error);
+      setCopyFeedback('Error al copiar. Intente manualmente.');
+    }
+  };
+
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setSelectedDiagnosisForLink(null);
@@ -589,17 +607,46 @@ export default function DiagnosesPage() {
                 multiline
                 rows={2}
                 variant="outlined"
-                InputProps={{ readOnly: true }}
+                InputProps={{
+                  readOnly: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Tooltip title="Copiar link">
+                        <IconButton
+                          edge="end"
+                          aria-label="Copiar link de acceso"
+                          onClick={() => void handleCopyValue(generatedLinkData.link, 'link')}
+                        >
+                          <ContentCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  ),
+                }}
               />
 
-              <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1, border: '1px solid #e0e0e0' }}>
-                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                  Contraseña de acceso:
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
-                  {generatedLinkData.password}
-                </Typography>
-              </Box>
+              <TextField
+                label="Contraseña de acceso"
+                value={generatedLinkData.password}
+                fullWidth
+                variant="outlined"
+                InputProps={{
+                  readOnly: true,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Tooltip title="Copiar contraseña">
+                        <IconButton
+                          edge="end"
+                          aria-label="Copiar contraseña de acceso"
+                          onClick={() => void handleCopyValue(generatedLinkData.password, 'contrasena')}
+                        >
+                          <ContentCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
               <TextField
                 label="Vencimiento"

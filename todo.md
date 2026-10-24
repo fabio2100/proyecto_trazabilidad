@@ -6,4 +6,3 @@
 * Bajo: Ver tiempo de validez de cookie y sesion
 * Urgente: Escaner cuando es tecnico, mostrar editar notas del tecnico
 //hoy 
-* estilo informe => adecuar estilo, agregar edad al momento de informe, mostrar fecha nacimiento en estilo adecuado
