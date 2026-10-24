@@ -766,8 +766,8 @@ export default function PatientForm({
           sx={{ mb: 3 }}
         >
           {mode === 'edit'
-            ? 'Editar Diagnóstico'
-            : 'Nuevo Diagnóstico'}
+            ? 'Editar Estudio'
+            : 'Nuevo Estudio'}
         </Typography>
 
         {successMessage && (
@@ -938,7 +938,7 @@ export default function PatientForm({
           </Box>
         </Box>
 
-        {/* Información del diagnóstico */}
+        {/* Información del estudio */}
         <Box
           component="fieldset"
           sx={{
@@ -953,7 +953,7 @@ export default function PatientForm({
             component="legend"
             sx={{ px: 1, fontWeight: 'bold' }}
           >
-            Información del diagnóstico
+            Información del estudio
           </Box>
 
           <Box
@@ -1137,11 +1137,11 @@ export default function PatientForm({
             >
               <TextField
                 fullWidth
-                label="Diagnóstico"
+                label="Observaciones"
                 name="diagnostico"
                 value={formData.diagnostico}
                 onChange={handleChange}
-                placeholder="Diagnóstico clínico o observaciones"
+                placeholder="Observaciones"
                 multiline
                 rows={3}
               />

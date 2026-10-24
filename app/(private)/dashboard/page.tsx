@@ -29,7 +29,7 @@ interface StatCard {
 
 const cards: StatCard[] = [
   { label: 'Pacientes', key: 'patients', icon: <PeopleAltIcon sx={{ fontSize: 40 }} />, color: '#1976d2' },
-  { label: 'Diagnósticos', key: 'diagnoses', icon: <BiotechIcon sx={{ fontSize: 40 }} />, color: '#388e3c' },
+  { label: 'Estudios', key: 'diagnoses', icon: <BiotechIcon sx={{ fontSize: 40 }} />, color: '#388e3c' },
   { label: 'Notas de técnico', key: 'notas', icon: <StickyNote2Icon sx={{ fontSize: 40 }} />, color: '#f57c00' },
   { label: 'Informes', key: 'informes', icon: <ArticleIcon sx={{ fontSize: 40 }} />, color: '#7b1fa2' },
 ];
