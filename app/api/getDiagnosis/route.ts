@@ -20,6 +20,8 @@ interface DiagnosisRow {
   createdAt: Date;
   informeId: string | null;
   informeCuerpo: string | null;
+  informeMicroscopia: string | null;
+  informeMacroscopia: string | null;
   notasTecnicoId: string | null;
   notasTecnicoCuerpo: string | null;
   notasTecnicoImagenes: string[];
@@ -43,7 +45,8 @@ export async function GET(request: NextRequest) {
           p.email AS "patientEmail", p.telefono AS "patientTelefono", p."fechaNacimiento" AS "patientFechaNacimiento",
         u.name AS "creatorName",
               d.diagnosis, d.material, d."profesionalSolicitante", d."biopsasPrevias", d."createdAt",
-              i.id AS "informeId", i.cuerpo AS "informeCuerpo",
+            i.id AS "informeId", i.diagnostico AS "informeCuerpo",
+              i.microscopia AS "informeMicroscopia", i.macroscopia AS "informeMacroscopia",
               n.id AS "notasTecnicoId", n.cuerpo AS "notasTecnicoCuerpo",
               COALESCE(n.imagenes, ARRAY[]::TEXT[]) AS "notasTecnicoImagenes"
        FROM "Diagnosis" d

@@ -5,4 +5,3 @@
 * bajo: Agregar fechas informes, agregar ordenar la tabla, paginación
 * Bajo: Ver tiempo de validez de cookie y sesion
 * Urgente: Escaner cuando es tecnico, mostrar editar notas del tecnico
-//hoy 

@@ -8,7 +8,10 @@ export const dynamic = 'force-dynamic';
 
 interface GuardarInformeBody {
   diagnosisId: string;
-  informe: string;
+  diagnostico?: string;
+  informe?: string;
+  microscopia?: string;
+  macroscopia?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -24,11 +27,13 @@ export async function POST(request: NextRequest) {
   }
 
   const diagnosisId = body.diagnosisId?.trim() ?? '';
-  const informe = body.informe?.trim() ?? '';
+  const diagnostico = (body.diagnostico ?? body.informe ?? '').trim();
+  const microscopia = body.microscopia?.trim() ?? '';
+  const macroscopia = body.macroscopia?.trim() ?? '';
 
-  if (!diagnosisId || !informe) {
+  if (!diagnosisId || !diagnostico) {
     return NextResponse.json(
-      { ok: false, message: 'Los campos diagnosisId e informe son obligatorios.' },
+      { ok: false, message: 'Los campos diagnosisId y diagnostico son obligatorios.' },
       { status: 400 },
     );
   }
@@ -43,13 +48,16 @@ export async function POST(request: NextRequest) {
     const pool = getPool();
 
     await pool.query(
-      `INSERT INTO "Informes" (id, "diagnosisId", cuerpo, "userId")
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT ("diagnosisId") DO UPDATE SET cuerpo = EXCLUDED.cuerpo`,
-      [randomUUID(), diagnosisId, informe, userId],
+      `INSERT INTO "Informes" (id, "diagnosisId", diagnostico, microscopia, macroscopia, "userId")
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT ("diagnosisId") DO UPDATE
+       SET diagnostico = EXCLUDED.diagnostico,
+           microscopia = EXCLUDED.microscopia,
+           macroscopia = EXCLUDED.macroscopia`,
+      [randomUUID(), diagnosisId, diagnostico, microscopia || null, macroscopia || null, userId],
     );
 
-    return NextResponse.json({ ok: true, message: 'Informe guardado correctamente.' });
+    return NextResponse.json({ ok: true, message: 'Diagnóstico guardado correctamente.' });
   } catch (error) {
     console.error('[guardarInforme] Error:', error);
     return NextResponse.json(

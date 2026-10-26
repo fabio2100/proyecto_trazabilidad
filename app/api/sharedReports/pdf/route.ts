@@ -12,7 +12,9 @@ interface SharedPdfBody {
 
 interface InformeJoinRow {
   informeId: string;
-  informeCuerpo: string;
+  informeCuerpo: string | null;
+  informeMicroscopia: string | null;
+  informeMacroscopia: string | null;
   informeCreatedAt: Date;
   informeUserId: string;
   informeCreatorName: string | null;
@@ -154,7 +156,14 @@ async function toPdfBuffer(data: InformeJoinRow): Promise<Buffer> {
   drawLine(`Fecha del informe: ${formatDateOnly(data.informeCreatedAt)}`);
   drawLine(`Creado por: ${data.informeCreatorName ?? 'No disponible'}`);
   y -= 2;
-  drawParagraph(data.informeCuerpo);
+  drawLine('Microscopía:', 13, true);
+  drawParagraph(data.informeMicroscopia || '');
+  y -= 2;
+  drawLine('Macroscopía:', 13, true);
+  drawParagraph(data.informeMacroscopia || '');
+  y -= 2;
+  drawLine('Diagnóstico:', 13, true);
+  drawParagraph(data.informeCuerpo || '');
 
   const bytes = await pdfDoc.save();
   return Buffer.from(bytes);
@@ -205,7 +214,9 @@ export async function POST(request: NextRequest) {
     const result = await pool.query<InformeJoinRow>(
       `SELECT
          i.id AS "informeId",
-         i.cuerpo AS "informeCuerpo",
+        i.diagnostico AS "informeCuerpo",
+        i.microscopia AS "informeMicroscopia",
+        i.macroscopia AS "informeMacroscopia",
          i."createdAt" AS "informeCreatedAt",
          i."userId" AS "informeUserId",
          ui.name AS "informeCreatorName",

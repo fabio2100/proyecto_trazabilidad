@@ -16,6 +16,8 @@ interface InformePdfBody {
 interface InformeJoinRow {
   informeId: string | null;
   informeCuerpo: string | null;
+  informeMicroscopia: string | null;
+  informeMacroscopia: string | null;
   informeCreatedAt: Date | null;
   informeUserId: string | null;
   informeCreatorName: string | null;
@@ -263,6 +265,13 @@ async function toPdfBuffer(data: InformeJoinRow, onlyDiagnosis = false) {
       drawLine(`Fecha del informe: ${formatDateOnly(data.informeCreatedAt)}`);
       drawLine(`Creado por: ${data.informeCreatorName ?? 'No disponible'}`);
       y -= 2;
+      drawLine('Microscopía:', 13, true);
+      drawParagraph(data.informeMicroscopia || '');
+      y -= 2;
+      drawLine('Macroscopía:', 13, true);
+      drawParagraph(data.informeMacroscopia || '');
+      y -= 2;
+      drawLine('Diagnóstico:', 13, true);
       drawParagraph(data.informeCuerpo || '');
     }
   }
@@ -303,7 +312,9 @@ export async function POST(request: NextRequest) {
       query = `
         SELECT
           i.id AS "informeId",
-          i.cuerpo AS "informeCuerpo",
+          i.diagnostico AS "informeCuerpo",
+          i.microscopia AS "informeMicroscopia",
+          i.macroscopia AS "informeMacroscopia",
           i."createdAt" AS "informeCreatedAt",
           i."userId" AS "informeUserId",
           ui.name AS "informeCreatorName",
@@ -342,7 +353,9 @@ export async function POST(request: NextRequest) {
       query = `
         SELECT
           i.id AS "informeId",
-          i.cuerpo AS "informeCuerpo",
+          i.diagnostico AS "informeCuerpo",
+          i.microscopia AS "informeMicroscopia",
+          i.macroscopia AS "informeMacroscopia",
           i."createdAt" AS "informeCreatedAt",
           i."userId" AS "informeUserId",
           ui.name AS "informeCreatorName",

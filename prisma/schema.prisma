@@ -86,7 +86,9 @@ model DiagnosisSequence {
 
 model Informes {
   id          String    @id @default(uuid())
-  cuerpo      String
+  diagnostico String    @db.Text
+  microscopia String?   @db.Text
+  macroscopia String?   @db.Text
   diagnosisId String    @unique
   userId      String
   createdAt   DateTime  @default(now())

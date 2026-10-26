@@ -37,6 +37,8 @@ interface DiagnosisData {
   notasTecnicoImagenes: string[];
   informeId: string | null;
   informeCuerpo: string | null;
+  informeMicroscopia: string | null;
+  informeMacroscopia: string | null;
 }
 
 export default function InformesByDiagnosisPage() {
@@ -48,6 +50,8 @@ export default function InformesByDiagnosisPage() {
   const hasPermission = perfilId === 3;
 
   const [informe, setInforme] = useState('');
+  const [microscopia, setMicroscopia] = useState('');
+  const [macroscopia, setMacroscopia] = useState('');
   const [savingInforme, setSavingInforme] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState<DiagnosisData | null>(null);
   const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
@@ -66,6 +70,12 @@ export default function InformesByDiagnosisPage() {
           setDiagnosisData(json.data);
           if (json.data.informeCuerpo) {
             setInforme(json.data.informeCuerpo);
+          }
+          if (json.data.informeMicroscopia) {
+            setMicroscopia(json.data.informeMicroscopia);
+          }
+          if (json.data.informeMacroscopia) {
+            setMacroscopia(json.data.informeMacroscopia);
           }
         } else {
           setDiagnosisError(json.message ?? 'Estudio no encontrado');
@@ -146,13 +156,15 @@ export default function InformesByDiagnosisPage() {
   }
 
   const handleGuardar = async () => {
-    const informeValue = informe.trim();
+    const diagnosticoValue = informe.trim();
+    const microscopiaValue = microscopia.trim();
+    const macroscopiaValue = macroscopia.trim();
     setSaveMessage(null);
     setSaveError(false);
 
-    if (!informeValue) {
+    if (!diagnosticoValue) {
       setSaveError(true);
-      setSaveMessage('Debe ingresar un informe antes de guardar.');
+      setSaveMessage('Debe ingresar un diagnóstico antes de guardar.');
       return;
     }
 
@@ -165,7 +177,9 @@ export default function InformesByDiagnosisPage() {
         },
         body: JSON.stringify({
           diagnosisId,
-          informe: informeValue,
+          diagnostico: diagnosticoValue,
+          microscopia: microscopiaValue,
+          macroscopia: macroscopiaValue,
         }),
       });
 
@@ -173,14 +187,14 @@ export default function InformesByDiagnosisPage() {
 
       if (data.ok) {
         setSaveError(false);
-        setSaveMessage(data.message ?? 'Informe guardado correctamente.');
+        setSaveMessage(data.message ?? 'Diagnóstico guardado correctamente.');
       } else {
         setSaveError(true);
-        setSaveMessage(data.message ?? 'No se pudo guardar el informe.');
+        setSaveMessage(data.message ?? 'No se pudo guardar el diagnóstico.');
       }
     } catch {
       setSaveError(true);
-      setSaveMessage('Error de red al guardar el informe.');
+      setSaveMessage('Error de red al guardar el diagnóstico.');
     } finally {
       setSavingInforme(false);
     }
@@ -196,7 +210,7 @@ export default function InformesByDiagnosisPage() {
                 <ArrowBackIcon />
               </IconButton>
               <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-                Carga de Informe
+                Carga de Diagnóstico
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -295,13 +309,35 @@ export default function InformesByDiagnosisPage() {
           )}
 
           <TextField
+            id="microscopia"
+            label="Microscopía"
+            multiline
+            minRows={6}
+            value={microscopia}
+            onChange={(e) => setMicroscopia(e.target.value)}
+            placeholder="Escriba aquí la microscopía..."
+            fullWidth
+          />
+
+          <TextField
+            id="macroscopia"
+            label="Macroscopía"
+            multiline
+            minRows={6}
+            value={macroscopia}
+            onChange={(e) => setMacroscopia(e.target.value)}
+            placeholder="Escriba aquí la macroscopía..."
+            fullWidth
+          />
+
+          <TextField
             id="informe"
-            label="Informe"
+            label="Diagnóstico"
             multiline
             minRows={8}
             value={informe}
             onChange={(e) => setInforme(e.target.value)}
-            placeholder="Escriba aquí el informe..."
+            placeholder="Escriba aquí el diagnóstico..."
             fullWidth
           />
 
@@ -318,7 +354,7 @@ export default function InformesByDiagnosisPage() {
               size="large"
               disabled={savingInforme}
             >
-              {savingInforme ? 'Guardando...' : 'Guardar Informe'}
+              {savingInforme ? 'Guardando...' : 'Guardar Diagnóstico'}
             </Button>
           </Box>
         </Stack>
